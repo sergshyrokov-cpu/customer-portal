@@ -332,11 +332,11 @@ Analyze impact across:
 
 ### Modules
 
-Which Gradle or application modules are affected.
+Which .NET projects or application modules are affected.
 
-### Packages
+### Namespaces
 
-Which package responsibilities are involved.
+Which namespace responsibilities are involved.
 
 ### Source Files
 
@@ -540,7 +540,7 @@ Describe:
 - expected schema changes;
 - migration implications.
 
-For this training project, do not treat Hibernate ddl-auto behavior as a replacement for explicit persistence design.
+For this training project, do not treat EF Core migration generation as a replacement for explicit persistence design.
 
 # 9. Security Impact
 
@@ -570,7 +570,7 @@ Map testing areas to Acceptance Criteria.
 Identify:
 
 - application configuration changes;
-- Gradle dependency changes;
+- NuGet package dependency changes;
 - profile changes;
 - runtime changes;
 - external service changes.

@@ -369,10 +369,10 @@ When persistence behavior changes, check that the plan includes:
 - schema initialization or migration implications;
 - persistence tests.
 
-For this training project, H2 file persistence may be used.
+For this training project, SQLite file persistence may be used.
 
-The plan must not rely on ddl-auto update as a substitute for explicit schema
-and constraint design.
+The plan must not rely on `Database.EnsureCreated()`/`EnsureDeleted()` as a
+substitute for explicit, reviewed EF Core Migrations and constraint design.
 
 ---
 
@@ -386,7 +386,7 @@ Check that the plan addresses relevant security requirements, including:
 - authorization boundaries;
 - input validation;
 - sensitive data logging;
-- H2 console exposure;
+- database browser/admin UI exposure;
 - insecure development-only configuration;
 - secret management.
 
@@ -443,9 +443,9 @@ Each significant step should define how its result will be checked.
 
 Planned evidence may include:
 
-- Gradle build result;
+- `dotnet build` result;
 - test result;
-- IDEA diagnostics;
+- build diagnostics;
 - lint or inspection result;
 - OpenAPI validation;
 - security review;

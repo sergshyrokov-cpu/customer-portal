@@ -413,29 +413,22 @@ The Skill must examine all of the following dimensions:
 
 Prefer repository artifacts and Git evidence for change-set reconciliation.
 
-Use IDEA MCP when available for semantic and project-aware inspection.
+No verified IDE MCP server is configured for this .NET track (unlike the
+prior Spring Boot track's IntelliJ IDEA MCP integration). Use built-in file
+reading, search, and edit tools as the primary and only mechanism.
 
 ## Repository and Project Inspection
 
-Preferred capabilities:
+Use built-in tools:
 
-- mcp__idea__git_status
-- mcp__idea__get_repositories
-- mcp__idea__get_project_modules
-- mcp__idea__get_project_dependencies
-- mcp__idea__list_directory_tree
-- mcp__idea__read_file
+- `Read` / `Glob` to inspect project structure and files;
+- `Grep` for text-based symbol and reference search;
+- `git status`, `git diff`, `git log` via an approved shell command for
+  repository state.
 
 ## Semantic Analysis
 
-Preferred capabilities:
-
-- mcp__idea__search_symbol
-- mcp__idea__get_symbol_info
-- mcp__idea__analyze_calls
-- mcp__idea__generate_psi_tree
-
-Use semantic analysis to verify:
+Use `Grep` / `Read` to verify:
 
 - actual component ownership;
 - class and interface relationships;
@@ -444,14 +437,12 @@ Use semantic analysis to verify:
 - claimed file responsibilities;
 - renamed or duplicated abstractions.
 
+Text-based search is not semantic analysis. Avoid claiming semantic certainty
+based only on text matching.
+
 ## Build and Diagnostics
 
-Use when current evidence must be reconfirmed:
-
-- mcp__idea__build_project
-- mcp__idea__get_file_problems
-- mcp__idea__lint_files
-- mcp__ide__getDiagnostics
+Use `dotnet build` / `dotnet test` when current evidence must be reconfirmed.
 
 ## GitHub MCP
 
@@ -472,31 +463,21 @@ Do not merge.
 
 ## Database Inspection
 
-When a configured IDEA database connection exists and runtime schema evidence
-is relevant, use read-only capabilities:
-
-- mcp__idea__list_database_connections
-- mcp__idea__test_database_connection
-- mcp__idea__list_database_schemas
-- mcp__idea__list_schema_objects
-- mcp__idea__get_database_object_description
-- mcp__idea__introspect_schema
+If a local SQLite inspection tool is available (e.g. the `sqlite3` CLI or a
+DB Browser), use it read-only to confirm schema/migration state.
 
 Do not execute destructive SQL.
 
-Do not create database connections automatically.
+Do not create database connections or tooling configuration automatically.
 
----
+## If an IDE MCP server becomes available
 
-# Built-In Tool Fallback
-
-If IDEA MCP is unavailable:
-
-1. Use built-in file discovery and reading.
-2. Use approved Git commands through the shell.
-3. Use approved Gradle commands when evidence must be refreshed.
-4. Record missing semantic capabilities.
-5. Avoid claiming semantic certainty based only on text matching.
+If a Rider/VS-family MCP server is later configured for this project, prefer
+its semantic search, refactor, and diagnostics capabilities over plain-text
+search and manual edits, following the same caution rules the Spring Boot
+track applied to IntelliJ IDEA MCP (read-only database access by default; no
+unapproved connections; do not claim semantic certainty from text search
+alone when a semantic tool was available and unused).
 
 Suggested Git evidence may include:
 
@@ -506,17 +487,10 @@ Suggested Git evidence may include:
     git diff
     git ls-files
 
-Suggested Gradle evidence may include:
+Suggested `dotnet` evidence may include:
 
-Windows:
-
-    gradlew.bat test
-    gradlew.bat check
-
-Unix-compatible environment:
-
-    ./gradlew test
-    ./gradlew check
+    dotnet build
+    dotnet test
 
 Use only commands appropriate to the current environment and repository.
 
@@ -802,11 +776,11 @@ Compare:
 
 - approved DB design;
 - entity model;
-- JPA entities;
+- EF Core entities;
 - repository behavior;
 - explicit constraints;
 - runtime schema evidence when available;
-- H2 configuration;
+- SQLite configuration;
 - persistence tests.
 
 Verify alignment for:
@@ -823,11 +797,11 @@ Verify alignment for:
 - database location;
 - schema initialization strategy.
 
-For the training project, confirm that file-based H2 behavior matches approved
-documentation.
+For the training project, confirm that file-based SQLite behavior matches
+approved documentation.
 
-Generated H2 database files must be classified as runtime artifacts and must
-not enter the Pull Request candidate set.
+Generated SQLite database files must be classified as runtime artifacts and
+must not enter the Pull Request candidate set.
 
 ---
 
@@ -876,7 +850,7 @@ If security-sensitive files changed after Security Review:
 
 Security-sensitive files may include:
 
-- Spring Security configuration;
+- authentication/authorization configuration;
 - password handling;
 - authentication or authorization components;
 - entities containing sensitive data;
@@ -941,8 +915,8 @@ Inspect:
 - profile-specific configuration;
 - Git ignore rules;
 - dependencies;
-- H2 settings;
-- Spring Security settings;
+- SQLite settings;
+- authentication/authorization settings;
 - test settings.
 
 Flag:
@@ -972,7 +946,7 @@ Classify every changed or untracked file as:
 
 Examples of likely exclusions:
 
-- generated H2 database files;
+- generated SQLite database files;
 - IDE-local configuration;
 - secret-bearing configuration;
 - unrelated edits;
@@ -1339,7 +1313,7 @@ Record:
 - entities;
 - repositories;
 - constraints;
-- H2 configuration;
+- SQLite configuration;
 - runtime schema evidence;
 - generated database files;
 - deviations.
@@ -1395,7 +1369,7 @@ Files that belong to the active Story.
 
 ### Exclude Runtime Artifacts
 
-Generated files such as H2 database files or temporary reports.
+Generated files such as SQLite database files or temporary reports.
 
 ### Exclude Local Configuration
 
@@ -1543,7 +1517,7 @@ This Skill must not:
 - mark the Story `COMPLETED`;
 - update workflow state (the orchestrator does that);
 - include secrets in reports;
-- include generated H2 database files in the candidate scope;
+- include generated SQLite database files in the candidate scope;
 - treat tool logs as stronger authority than approved requirements.
 
 ---
@@ -1584,7 +1558,7 @@ If the remote GitHub Issue cannot be accessed:
 3. do not claim remote synchronization;
 4. use BLOCKED when remote Issue authority is mandatory.
 
-If IDEA MCP is unavailable:
+When semantic evidence is not available from text search alone:
 
 1. use built-in tools and Git evidence;
 2. record unavailable semantic analysis;

@@ -2,7 +2,7 @@
 name: security-reviewer
 description: >
   Performs an independent security review of the active User Story
-  implementation in the Customer Portal Spring Boot application. Reviews
+  implementation in the Customer Portal ASP.NET Core application. Reviews
   authentication, authorization, sensitive data handling, input validation,
   API exposure, persistence, configuration, dependencies, logging, tests,
   and security-relevant deviations from approved artifacts. Use after
@@ -140,8 +140,8 @@ The Security Reviewer answers:
 Do not trust the Implementation Report or Implementation Verification Report
 without checking the underlying implementation and available evidence.
 
-Do not treat the presence of Spring Security as proof that the application is
-secure.
+Do not treat the presence of authentication/authorization middleware as proof
+that the application is secure.
 
 Do not treat password hashing as sufficient protection if password input,
 logging, serialization, database constraints, or endpoint access remain
@@ -338,7 +338,7 @@ Examples include:
 - authentication requirements;
 - authorization rules;
 - sensitive data retention;
-- H2 console exposure;
+- database browser/admin UI exposure;
 - database file location;
 - schema initialization strategy;
 - error response information;
@@ -353,7 +353,7 @@ Identify:
 - modified files;
 - untracked files;
 - deleted files;
-- generated H2 files;
+- generated SQLite files;
 - configuration files;
 - secret-like files;
 - unrelated changes.
@@ -447,33 +447,27 @@ Story.
 
 ---
 
-# IDEA MCP Tooling Strategy
+# Tooling Strategy
 
-Prefer IDEA MCP capabilities when available.
+No verified IDE MCP server is configured for this .NET track (unlike the
+prior Spring Boot track's IntelliJ IDEA MCP integration). Use built-in file
+reading, search, and edit tools as the primary and only mechanism.
 
 ## Project Inspection
 
-Use when appropriate:
+Use built-in tools:
 
-- mcp__idea__get_project_modules
-- mcp__idea__get_project_dependencies
-- mcp__idea__list_directory_tree
-- mcp__idea__git_status
-- mcp__idea__get_repositories
+- `Read` / `Glob` to inspect project structure and files;
+- `Grep` for text-based symbol and reference search;
+- `git status`, `git diff`, `git log` via an approved shell command for
+  repository state.
 
 ## Semantic Analysis
 
-Use when appropriate:
-
-- mcp__idea__search_symbol
-- mcp__idea__get_symbol_info
-- mcp__idea__analyze_calls
-- mcp__idea__generate_psi_tree
-
-Use semantic evidence to inspect:
+Use `Grep` / `Read` to inspect:
 
 - security configuration usage;
-- password encoder injection;
+- password hasher injection;
 - service call paths;
 - repository access paths;
 - endpoint-to-service relationships;
@@ -481,73 +475,46 @@ Use semantic evidence to inspect:
 - direct repository access;
 - authorization-related call paths.
 
+Text-based search is not semantic analysis. Avoid unsupported security
+claims — qualify a finding as based on text search when no stronger evidence
+was available.
+
 ## Build and Diagnostics
 
-Use when appropriate:
+Suggested `dotnet` CLI commands:
 
-- mcp__idea__build_project
-- mcp__idea__get_file_problems
-- mcp__idea__lint_files
-- mcp__ide__getDiagnostics
+- `dotnet build` — compile and surface compiler diagnostics.
+- `dotnet test` — run the full test suite.
+- `dotnet format --verify-no-changes` — confirm formatting, when the project
+  has a `.editorconfig` and this check is part of project conventions.
+
+Use only commands supported by the repository. Record actual results.
 
 ## Runtime and Test Execution
 
-Use when appropriate:
-
-- mcp__idea__get_run_configurations
-- mcp__idea__execute_run_configuration
-- mcp__idea__execute_terminal_command
-
-Do not start or expose the application on an externally accessible interface
-unless explicitly approved.
+Use `dotnet test` (optionally with `--filter`) for scoped runs. Do not start
+or expose the application on an externally accessible interface unless
+explicitly approved.
 
 ## Database Inspection
 
-When an approved IDEA database connection already exists, use read-only
-capabilities when relevant:
+If a local SQLite inspection tool is available (e.g. the `sqlite3` CLI or a
+DB Browser), use it read-only.
 
-- mcp__idea__list_database_connections
-- mcp__idea__test_database_connection
-- mcp__idea__list_database_schemas
-- mcp__idea__list_schema_objects
-- mcp__idea__get_database_object_description
-- mcp__idea__introspect_schema
-- mcp__idea__execute_sql_query
-- mcp__idea__preview_table_data
-
-Do not create a database connection automatically.
+Do not create a database connection or tooling configuration automatically.
 
 Do not execute destructive SQL.
 
 Do not retrieve or copy sensitive data unnecessarily.
 
----
+## If an IDE MCP server becomes available
 
-# Built-In Tool Fallback
-
-If IDEA MCP is unavailable:
-
-1. Use built-in file inspection and search.
-2. Use approved Gradle commands.
-3. Inspect configuration and Git state through approved shell operations.
-4. Record unavailable semantic and runtime checks.
-5. Avoid unsupported security claims.
-
-Suggested project commands may include:
-
-Windows:
-
-    gradlew.bat clean test
-    gradlew.bat check
-
-Unix-compatible environment:
-
-    ./gradlew clean test
-    ./gradlew check
-
-Use only commands supported by the repository.
-
-Record actual results.
+If a Rider/VS-family MCP server is later configured for this project, prefer
+its semantic search, refactor, and diagnostics capabilities over plain-text
+search and manual edits, following the same caution rules the Spring Boot
+track applied to IntelliJ IDEA MCP (read-only database access by default; no
+unapproved connections; do not claim semantic certainty from text search
+alone when a semantic tool was available and unused).
 
 ---
 
@@ -665,7 +632,7 @@ Do not claim that dependencies are vulnerability-free without evidence.
 
 ---
 
-## Step 6: Review Spring Security Configuration
+## Step 6: Review Authentication/Authorization Configuration
 
 Inspect relevant Security configuration.
 
@@ -685,7 +652,8 @@ Verify:
 
 Flag broad rules such as unrestricted access when not explicitly approved.
 
-Do not assume an endpoint is protected because Spring Security is present.
+Do not assume an endpoint is protected because authentication middleware is
+registered.
 
 ---
 
@@ -852,33 +820,37 @@ Verify:
 - email uniqueness is enforced at the appropriate layer;
 - constraints are explicit;
 - database files are stored in the approved location;
-- generated H2 files are excluded from Git;
+- generated SQLite files are excluded from Git;
 - database path is not exposed in responses or logs;
 - schema behavior is documented;
 - destructive schema recreation is not enabled without approval.
 
-For the training repository, verify that H2 is file-based when required.
+For the training repository, verify that SQLite is file-based when required.
 
-Do not accept `ddl-auto=update` as a substitute for explicit persistence
-design merely because the application starts successfully.
+Do not accept `Database.EnsureCreated()`/`EnsureDeleted()` outside an
+isolated test database as a substitute for explicit, reviewed EF Core
+Migrations merely because the application starts successfully.
 
 ---
 
-## Step 15: Review H2 Configuration
+## Step 15: Review SQLite Configuration
 
 Inspect all active configuration profiles.
 
 Verify:
 
-- the H2 console is disabled unless explicitly approved for a local profile;
-- the H2 console is not exposed through broad Spring Security rules;
-- the database URL uses the approved file-based location;
+- no database browser/admin UI is enabled unless explicitly approved for a
+  local profile;
+- no database browser/admin UI is exposed through broad routing/security
+  rules;
+- the database connection string uses the approved file-based location;
 - credentials are not committed when they should be environment-specific;
 - generated database files are ignored by Git;
 - schema initialization behavior is explicit;
 - development settings cannot accidentally become default runtime settings.
 
-Treat externally reachable H2 console exposure as a Critical finding.
+Treat externally reachable database browser/admin UI exposure as a Critical
+finding.
 
 ---
 
@@ -916,7 +888,7 @@ Look for:
 - private keys;
 - `.env` files;
 - local database credentials;
-- generated H2 database files;
+- generated SQLite database files;
 - copied MCP configuration containing secrets;
 - logs containing credentials.
 
@@ -945,7 +917,7 @@ For registration, expected tests may include:
 - invalid email is rejected;
 - duplicate email behavior is enforced;
 - unapproved fields are not returned;
-- H2 console is not publicly accessible when applicable;
+- database browser/admin UI is not publicly accessible when applicable;
 - endpoint access matches approved public or protected status.
 
 Assess test quality.
@@ -1014,7 +986,7 @@ Examples:
 
 - plaintext password persistence;
 - password or hash exposure;
-- exposed H2 console without approval;
+- exposed database browser/admin UI without approval;
 - unrestricted access to protected functionality;
 - committed token or credential;
 - missing required authorization;
@@ -1115,7 +1087,7 @@ Shared block from `docs/workflow/artifact-schema.md`
 (`artifact_type: security_review`), plus: `critical_findings`,
 `major_findings`, `minor_findings`, `informational_findings`,
 `security_sensitive` (bool), `runtime_checks` (`FULL` / `PARTIAL` / `NONE`),
-`semantic_analysis` (`IDEA_MCP` / `TEXT_FALLBACK` / `UNAVAILABLE`).
+`semantic_analysis` (`IDE_MCP` / `TEXT_FALLBACK` / `UNAVAILABLE`).
 `created_at` / `updated_at` are runtime timestamps.
 
 Illustrative (dates are examples only):
@@ -1142,7 +1114,7 @@ Illustrative (dates are examples only):
     informational_findings: 0
     security_sensitive: true
     runtime_checks: PARTIAL
-    semantic_analysis: IDEA_MCP
+    semantic_analysis: TEXT_FALLBACK
     ---
 
 ## 1. Executive Summary
@@ -1172,8 +1144,8 @@ Describe:
 
 Record:
 
-- Spring Boot version;
-- Java version;
+- ASP.NET Core version;
+- .NET version;
 - active profile;
 - database mode;
 - review tools;
@@ -1260,12 +1232,12 @@ Record:
 - generated files;
 - findings.
 
-## 12. H2 and Application Configuration
+## 12. SQLite and Application Configuration
 
 Record:
 
-- H2 mode;
-- H2 console state;
+- SQLite mode;
+- database browser/admin UI state;
 - schema behavior;
 - profiles;
 - secrets;
@@ -1314,7 +1286,7 @@ For every reviewed abuse case record:
 Record:
 
 - secret-like files;
-- generated H2 files;
+- generated SQLite files;
 - ignored files;
 - unsafe local configuration;
 - findings.
@@ -1427,8 +1399,8 @@ This Skill must not:
 - expose secret values in reports;
 - execute destructive database operations;
 - create database connections without approval;
-- enable the H2 console;
-- weaken Spring Security configuration;
+- enable a database browser/admin UI;
+- weaken authentication/authorization configuration;
 - disable CSRF or authentication without approved requirements;
 - disable or weaken security tests;
 - suppress security findings;
@@ -1467,9 +1439,9 @@ If required runtime verification cannot be performed:
 4. return `verdict: BLOCKED` (cannot evaluate) or `CHANGES_REQUIRED` (a concrete
    correctable insecurity was still found) according to impact.
 
-If IDEA MCP is unavailable:
+When semantic evidence is not available from text search alone:
 
-1. use built-in tools and Gradle evidence;
+1. use built-in tools and `dotnet` evidence;
 2. record unavailable semantic checks;
 3. lower confidence where necessary;
 4. avoid unsupported conclusions.
@@ -1563,7 +1535,7 @@ Security Review is complete only when:
 - input validation is reviewed;
 - API security is reviewed;
 - persistence security is reviewed;
-- H2 and application configuration are reviewed;
+- SQLite and application configuration are reviewed;
 - logging and telemetry are reviewed;
 - dependencies are reviewed within available capabilities;
 - security tests are evaluated;

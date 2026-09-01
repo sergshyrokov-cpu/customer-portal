@@ -1,7 +1,7 @@
 ---
 name: implementation-verifier
 description: >
-  Independently verifies a Spring Boot implementation against the active
+  Independently verifies an ASP.NET Core implementation against the active
   User Story, Acceptance Criteria, approved Specification, API and database
   designs, Implementation Plan, tests, architecture rules, and actual
   repository state. Use after implementation and before security review,
@@ -304,7 +304,7 @@ Acceptable evidence includes:
 - successful build result;
 - observed test execution;
 - test result;
-- IDEA diagnostics;
+- build diagnostics;
 - contract comparison;
 - persisted database constraints;
 - semantic architecture inspection;
@@ -345,32 +345,26 @@ over model judgment.
 
 ---
 
-# IDEA MCP Tooling Strategy
+# Tooling Strategy
 
-Prefer IDEA MCP capabilities when available.
+No verified IDE MCP server is configured for this .NET track (unlike the
+prior Spring Boot track's IntelliJ IDEA MCP integration). Use built-in file
+reading, search, and edit tools as the primary and only mechanism.
 
 ## Project and Repository Inspection
 
-Use when appropriate:
+Use built-in tools:
 
-- mcp__idea__get_project_modules
-- mcp__idea__get_project_dependencies
-- mcp__idea__list_directory_tree
-- mcp__idea__git_status
-- mcp__idea__get_repositories
+- `Read` / `Glob` to inspect project structure and files;
+- `Grep` for text-based symbol and reference search;
+- `git status`, `git diff`, `git log` via an approved shell command for
+  repository state.
 
 ## Semantic Verification
 
-Use when appropriate:
+Use `Grep` / `Read` to verify:
 
-- mcp__idea__search_symbol
-- mcp__idea__get_symbol_info
-- mcp__idea__analyze_calls
-- mcp__idea__generate_psi_tree
-
-Semantic analysis should be used to verify:
-
-- package ownership;
+- namespace ownership;
 - dependency direction;
 - symbol usage;
 - Controller-to-Service calls;
@@ -378,72 +372,51 @@ Semantic analysis should be used to verify:
 - duplicated components;
 - actual implementation locations.
 
+Text-based search is not semantic analysis. Do not claim semantic certainty
+(e.g. "no other caller exists") from text matching alone — qualify such
+findings as based on text search.
+
 ## Build and Diagnostics
 
-Use when appropriate:
+Suggested `dotnet` CLI commands:
 
-- mcp__idea__build_project
-- mcp__idea__get_file_problems
-- mcp__idea__lint_files
-- mcp__ide__getDiagnostics
+- `dotnet build` — compile and surface compiler diagnostics.
+- `dotnet test` — run the full test suite.
+- `dotnet format --verify-no-changes` — confirm formatting, when the project
+  has a `.editorconfig` and this check is part of project conventions.
 
-## Test and Runtime Execution
-
-Use when appropriate:
-
-- mcp__idea__get_run_configurations
-- mcp__idea__execute_run_configuration
-- mcp__idea__execute_terminal_command
-
-Use an existing approved run configuration when available.
-
-Do not create or alter run configurations unless explicitly permitted.
-
-## Database Verification
-
-When an IDEA database connection is already configured, use read-only
-capabilities when relevant:
-
-- mcp__idea__list_database_connections
-- mcp__idea__test_database_connection
-- mcp__idea__list_database_schemas
-- mcp__idea__list_schema_objects
-- mcp__idea__get_database_object_description
-- mcp__idea__introspect_schema
-- mcp__idea__execute_sql_query
-- mcp__idea__preview_table_data
-
-Do not mutate database state outside approved automated tests.
-
-Do not create a connection automatically without human approval.
-
----
-
-# Built-In Tool Fallback
-
-If IDEA MCP is unavailable:
-
-1. Use built-in file inspection and search.
-2. Use approved Gradle commands.
-3. Inspect Git status using an approved shell command.
-4. Record unavailable semantic checks.
-5. Avoid claiming semantic certainty where only text matching was used.
-
-Suggested commands:
-
-Windows:
-
-    gradlew.bat clean test
-    gradlew.bat check
-
-Unix-compatible environment:
-
-    ./gradlew clean test
-    ./gradlew check
+Use the command appropriate to the current environment (`dotnet` is
+cross-platform; no OS-specific wrapper script is needed).
 
 Use only commands supported by the current project.
 
-Record actual exit codes and relevant output.
+Record actual exit codes and relevant output. Do not assume a command passed
+unless its actual exit status and output were observed.
+
+## Test and Runtime Execution
+
+Use `dotnet test` (optionally with `--filter`) for scoped runs. Do not start
+long-lived application processes unless required by the approved validation
+plan.
+
+## Database Verification
+
+If a local SQLite inspection tool is available (e.g. the `sqlite3` CLI or a
+DB Browser), use it read-only to confirm schema/migration state.
+
+Do not mutate database state outside approved automated tests.
+
+Do not create a database connection or tooling configuration automatically
+without human approval.
+
+## If an IDE MCP server becomes available
+
+If a Rider/VS-family MCP server is later configured for this project, prefer
+its semantic search, refactor, and diagnostics capabilities over plain-text
+search and manual edits, following the same caution rules the Spring Boot
+track applied to IntelliJ IDEA MCP (read-only database access by default; no
+unapproved connections; do not claim semantic certainty from text search
+alone when a semantic tool was available and unused).
 
 ---
 
@@ -497,14 +470,14 @@ Inspect:
 - Git status;
 - changed files;
 - untracked files;
-- generated H2 files;
+- generated SQLite files;
 - build configuration;
 - application configuration;
 - existing baseline failures when evidence exists.
 
 Record unrelated changes separately.
 
-Do not include generated H2 database files in the intended Pull Request.
+Do not include generated SQLite database files in the intended Pull Request.
 
 ---
 
@@ -557,7 +530,7 @@ Run the approved build or check operation.
 
 Collect:
 
-- command or IDEA operation;
+- command or tool operation;
 - start and completion status;
 - exit status;
 - compilation errors;
@@ -702,14 +675,14 @@ Verify:
 - uniqueness;
 - indexes where required;
 - repository behavior;
-- file-based H2 configuration;
+- file-based SQLite configuration;
 - database file exclusion from Git.
 
-Do not treat JPA annotations alone as proof of actual runtime schema behavior
-when schema inspection is available.
+Do not treat EF Core entity configuration alone as proof of actual runtime
+schema behavior when schema inspection is available.
 
 For this training project, verify that the application does not silently use
-an in-memory H2 database when file persistence is required.
+an in-memory SQLite database when file persistence is required.
 
 ---
 
@@ -764,7 +737,7 @@ Verify at minimum:
 - plaintext passwords are not persisted;
 - password hashes are not returned;
 - passwords are not logged;
-- H2 console is not exposed without approval;
+- database browser/admin UI is not exposed without approval;
 - sensitive fields are excluded from API responses;
 - required authentication or authorization is wired;
 - no obvious permissive security configuration bypasses the Story constraints.
@@ -780,9 +753,9 @@ Inspect relevant configuration files.
 
 Verify:
 
-- H2 uses the approved file-based location;
+- SQLite uses the approved file-based location;
 - generated database files are ignored by Git;
-- unsafe H2 console exposure is absent;
+- unsafe database browser/admin UI exposure is absent;
 - schema behavior matches approved persistence conventions;
 - secrets are not committed;
 - active profiles do not invalidate test evidence;
@@ -794,7 +767,7 @@ Flag undocumented configuration changes.
 
 ## Step 15: Inspect Diagnostics and Warnings
 
-Collect IDEA and compiler diagnostics.
+Collect compiler and build diagnostics.
 
 Classify findings as:
 
@@ -803,7 +776,7 @@ Classify findings as:
 - Unrelated Warning;
 - Informational.
 
-A clean build does not automatically mean that IDEA diagnostics are clean.
+A clean build does not automatically mean all analyzer warnings are clean.
 
 Record relevant warnings that may affect reliability, nullability, security, or
 future maintenance.
@@ -823,7 +796,7 @@ Check whether tests:
 - assert sensitive data is not exposed;
 - avoid depending on execution order;
 - avoid false-positive assertions;
-- do not bypass Spring Security unintentionally;
+- do not bypass authentication/authorization middleware unintentionally;
 - do not mock away the behavior they claim to verify.
 
 Do not rewrite tests during verification.
@@ -950,7 +923,7 @@ Shared block from `docs/workflow/artifact-schema.md`
 `build_status`, `tests_status` (`PASS` / `FAIL` / `NOT_RUN`),
 `acceptance_criteria_verified`, `acceptance_criteria_total`,
 `critical_findings`, `major_findings`, `minor_findings`,
-`semantic_analysis` (`IDEA_MCP` / `TEXT_FALLBACK` / `UNAVAILABLE`).
+`semantic_analysis` (`IDE_MCP` / `TEXT_FALLBACK` / `UNAVAILABLE`).
 `created_at` / `updated_at` are runtime timestamps.
 
 Illustrative (dates are examples only):
@@ -978,7 +951,7 @@ Illustrative (dates are examples only):
     critical_findings: 1
     major_findings: 1
     minor_findings: 0
-    semantic_analysis: IDEA_MCP
+    semantic_analysis: TEXT_FALLBACK
     ---
 
 ## 1. Executive Summary
@@ -1000,9 +973,9 @@ List exact paths and versions of all reviewed artifacts.
 
 Record:
 
-- Java version;
-- Spring Boot version;
-- Gradle environment;
+- .NET version;
+- ASP.NET Core version;
+- .NET SDK environment;
 - active profile;
 - database mode;
 - verification tools;
@@ -1072,7 +1045,7 @@ Record:
 - implementation evidence;
 - runtime schema evidence when available;
 - constraint mismatches;
-- H2 persistence behavior;
+- SQLite persistence behavior;
 - generated file handling.
 
 ## 10. Architecture Verification
@@ -1100,7 +1073,7 @@ Record:
 
 - password handling;
 - sensitive response fields;
-- H2 console state;
+- database browser/admin UI state;
 - authentication and authorization wiring;
 - concerns forwarded to Security Review.
 
@@ -1247,9 +1220,9 @@ If an automated test fails:
    name the responsible stage (`TEST_WRITING` / `SPECIFICATION` / ...) in
    `blocking_issues`.
 
-If IDEA MCP is unavailable:
+When a test failure cannot be resolved to a clear cause:
 
-1. Use Gradle and built-in tools.
+1. Use `dotnet` commands and built-in tools.
 2. Record unavailable semantic checks.
 3. mark semantic_analysis as TEXT_FALLBACK or UNAVAILABLE.
 4. avoid unsupported claims.
@@ -1271,7 +1244,6 @@ Reference available tool usage logs when relevant.
 Verification evidence may include:
 
 - Claude Code tool calls;
-- IDEA MCP operations;
 - build invocations;
 - test invocations;
 - tool response sizes;

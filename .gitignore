@@ -1,42 +1,28 @@
-HELP.md
-.gradle
-build/
-
-### Generated H2 database files (persistence-conventions.md PC-1 / SC-7) ###
-/data/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+### .NET build output ###
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+obj/
+*.user
+*.userosscache
+*.suo
 
-### IntelliJ IDEA ###
-.idea
+### Generated SQLite database files (persistence-conventions.md PC-1 / SC-7) ###
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+### Visual Studio ###
+.vs/
+
+### JetBrains Rider ###
+.idea/
 *.iws
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
 
 ### VS Code ###
 .vscode/
+
+### Misc ###
 /docs/hooks/tool-usage.jsonl
 /docs/harness-consistency-review.md

@@ -1,7 +1,7 @@
 # API Conventions
 
 Explicit decisions for HTTP APIs in this project. `openapi-designer` and
-`design-reviewer` enforce these; `springboot-implementor` implements to them.
+`design-reviewer` enforce these; `aspnet-implementor` implements to them.
 
 ## AC-1 Versioning
 
@@ -61,13 +61,13 @@ All error responses use exactly this JSON shape:
 ```
 
 - `message` is safe for a client to display; it never contains stack traces,
-  SQL, class/package names, file paths, or secrets.
-- Bean-validation failures may add a `fieldErrors` array of
+  SQL, class/namespace names, file paths, or secrets.
+- FluentValidation failures may add a `fieldErrors` array of
   `{ "field": "...", "message": "..." }`.
 
 ## AC-7 Authentication header
 
-- Session-based auth for the MVP (see `security-conventions.md`): the browser
+- Cookie-based auth for the MVP (see `security-conventions.md`): the browser
   session cookie carries authentication; no `Authorization` header is expected.
 - If a Story introduces token auth (approved decision), it uses
   `Authorization: Bearer <token>` and that Story updates this section.
@@ -93,6 +93,6 @@ All error responses use exactly this JSON shape:
 
 ## AC-9 Exception-handler location
 
-Exception → HTTP mapping is done in the single `@RestControllerAdvice` in the
-`exception` package (see `architecture.md` AD-6). Controllers do not
+Exception → HTTP mapping is done in the single `GlobalExceptionHandler` in the
+`Exceptions` namespace (see `architecture.md` AD-6). Controllers do not
 `try/catch` to build error responses.

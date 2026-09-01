@@ -1,7 +1,7 @@
 # Customer Portal
 
 A training project demonstrating an artifact-driven agentic SDLC. A minimal
-Spring Boot application evolves through User Stories, each delivered by the
+ASP.NET Core application evolves through User Stories, each delivered by the
 workflow defined in `docs/workflow/`.
 
 All changes must be traceable to documented requirements and workflow artifacts.
@@ -33,15 +33,16 @@ disagree, the canonical file above wins.
 
 # Technology Stack
 
-- Java 21
-- Spring Boot 4.x — Spring Web MVC, Spring Data JPA, Spring Security
-- Gradle (Kotlin DSL)
-- H2 (file-based locally; isolated in-memory for tests — see
+- .NET 8 (C#)
+- ASP.NET Core Web API, Entity Framework Core, ASP.NET Core cookie
+  authentication
+- FluentValidation, BCrypt.Net-Next
+- SQLite (file-based locally; isolated in-memory for tests — see
   `docs/architecture/persistence-conventions.md`)
-- JUnit 5, Spring Boot Test
-- Lombok where project conventions allow
+- xUnit, `Microsoft.AspNetCore.Mvc.Testing`
 
-Always verify actual project dependencies before relying on a library.
+Always verify actual project dependencies (the `.csproj` files) before relying
+on a package.
 
 ---
 
@@ -100,7 +101,8 @@ Specification. Clarification is always preferred over guessing.
 # Security Policy
 
 Security-first defaults are mandatory. The full policy (password rules,
-authentication model, CSRF, `ddl-auto` restrictions, H2 console, secrets) lives
+authentication model, CSRF, schema-generation restrictions, database
+browser/admin UI, secrets) lives
 in `docs/architecture/security-conventions.md`. Do not weaken it without a
 human-approved Open Decision. Never commit secrets. Passwords are stored only as
 a BCrypt hash and never returned by any API.

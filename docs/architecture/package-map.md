@@ -1,35 +1,37 @@
 # Package Map
 
-Base package: `org.example.customerportal`. Test packages mirror this tree under
-`src/test/java`. Adding a package not listed here requires an approved decision.
+Root namespace: `CustomerPortal`. Test namespaces mirror this tree under
+`CustomerPortal.Tests`. Adding a namespace not listed here requires an
+approved decision.
 
-| Package | Contains | Depends on (allowed) | Notes |
+| Namespace | Contains | Depends on (allowed) | Notes |
 |---|---|---|---|
-| `controller` | `@RestController` classes | `service`, `model.dto`, `model.request` | No business logic. No repository access. No entity in a signature. |
-| `service` | business logic, orchestration, entity↔DTO mapping, transaction boundaries | `repository`, `model.entity`, `model.dto`, `model.request`, `exception`, `validation`, `security` (read-only helpers) | Owns `@Transactional`. No MVC / servlet types. |
-| `repository` | Spring Data JPA repository interfaces | `model.entity` | Queries only. No business logic. |
-| `model.entity` | `@Entity` classes — persisted domain state | (none — leaf) | Never used as an API request/response type. |
-| `model.dto` | API **response** DTOs | (none — leaf) | No credential fields, ever. |
-| `model.request` | API **request** DTOs with Bean Validation annotations | `validation` | Bound with `@Valid` in controllers. |
-| `validation` | custom constraint annotations + validators | `model.entity` (read-only, when a validator must query) | |
-| `security` | Spring Security config, `UserDetailsService`, password encoder bean, auth entry points | `repository`, `model.entity`, `config` | See `security-conventions.md`. |
-| `config` | framework `@Configuration` (Jackson, OpenAPI, etc.) | framework only | No business logic. |
-| `exception` | domain exception classes + one `@RestControllerAdvice` | `model.dto` (error body) | Single place that maps exceptions → HTTP. |
+| `Controllers` | ASP.NET Core `ControllerBase` classes (`[ApiController]`) | `Services`, `Models.Dtos`, `Models.Requests` | No business logic. No repository access. No entity in a signature. |
+| `Services` | business logic, orchestration, entity↔DTO mapping, transaction boundaries | `Repositories`, `Models.Entities`, `Models.Dtos`, `Models.Requests`, `Exceptions`, `Validation`, `Security` (read-only helpers) | Owns transaction scopes. No MVC / `HttpContext` types. |
+| `Repositories` | EF Core query/command classes over `AppDbContext` | `Models.Entities`, `Data` (for `AppDbContext`) | Queries only. No business logic. |
+| `Models.Entities` | EF Core entity classes — persisted domain state | (none — leaf) | Never used as an API request/response type. |
+| `Models.Dtos` | API **response** DTOs | (none — leaf) | No credential fields, ever. |
+| `Models.Requests` | API **request** DTOs, validated by a FluentValidation validator | `Validation` | Bound and validated automatically on the Controller action parameter. |
+| `Validation` | FluentValidation validators + reusable custom rules | `Models.Entities` (read-only, when a validator must query) | |
+| `Security` | authentication/authorization setup, cookie auth handler config, password hasher, claims principal factory | `Repositories`, `Models.Entities`, `Config` | See `security-conventions.md`. |
+| `Config` | `IServiceCollection` / `WebApplicationBuilder` extension methods (EF Core, Swagger, etc.) | framework only | No business logic. |
+| `Data` | `AppDbContext`, `IEntityTypeConfiguration<T>` classes, EF Core Migrations | `Models.Entities` | Owns the model configuration and the migration history. |
+| `Exceptions` | domain exception classes + the single `GlobalExceptionHandler` | `Models.Dtos` (error body) | Single place that maps exceptions → HTTP. |
 
 ## Dependency direction rules
 
-- `controller` may depend on `service`, `model.dto`, `model.request` — nothing
-  else in the app.
-- `service` may depend on everything except `controller`.
-- `repository` may depend only on `model.entity`.
-- `model.entity`, `model.dto` are leaves (no intra-app dependencies).
-- No cycles. `repository → service`, `repository → controller`,
-  `service → controller`, `controller → repository` are all forbidden and are
-  architecture violations (Major or Critical finding depending on impact).
+- `Controllers` may depend on `Services`, `Models.Dtos`, `Models.Requests` —
+  nothing else in the app.
+- `Services` may depend on everything except `Controllers`.
+- `Repositories` may depend only on `Models.Entities` and `Data`.
+- `Models.Entities`, `Models.Dtos` are leaves (no intra-app dependencies).
+- No cycles. `Repositories → Services`, `Repositories → Controllers`,
+  `Services → Controllers`, `Controllers → Repositories` are all forbidden and
+  are architecture violations (Major or Critical finding depending on
+  impact).
 
-## Test package rule
+## Test namespace rule
 
-For a production class `org.example.customerportal.<pkg>.<Name>`, its tests live
-in `org.example.customerportal.<pkg>` under `src/test/java`. Integration tests
-that span layers may sit in a `…​.<feature>` package but still under the base
-package.
+For a production class `CustomerPortal.<Namespace>.<Name>`, its tests live in
+`CustomerPortal.Tests.<Namespace>`. Integration tests that span layers may sit
+in a `CustomerPortal.Tests.<Feature>` namespace but still under the test root.

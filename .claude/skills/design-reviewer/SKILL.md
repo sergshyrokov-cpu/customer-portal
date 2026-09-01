@@ -84,13 +84,13 @@ areas as out of scope (citing the Specification), and return
 ## Database design (when applicable)
 - entities trace to business concepts in `business-glossary.md` /
   `business-rules.md`;
-- explicit column length, nullability, uniqueness, indexes — no reliance on JPA
-  defaults;
+- explicit column length, nullability, uniqueness, indexes — no reliance on
+  EF Core convention defaults;
 - identifier type and generation follow `persistence-conventions.md`;
 - sensitive fields (password hash, tokens, PII) identified with storage rules;
 - schema-initialization strategy is consistent with
-  `persistence-conventions.md` (no `ddl-auto` shortcut in place of explicit
-  design);
+  `persistence-conventions.md` (no `EnsureCreated()`/`EnsureDeleted()`
+  shortcut in place of explicit, reviewed EF Core Migrations);
 - relationships and cardinality are explicit.
 
 ## Cross-model consistency

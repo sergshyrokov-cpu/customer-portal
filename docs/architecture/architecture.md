@@ -2,17 +2,19 @@
 
 Explicit architecture decisions for the Customer Portal training project. These
 are project decisions, not general framework advice. Skills
-(`impact-analyzer`, `implementation-planner`, `springboot-implementor`,
+(`impact-analyzer`, `implementation-planner`, `aspnet-implementor`,
 `design-reviewer`, `implementation-verifier`, `security-reviewer`,
 `reconciliation-reviewer`) treat this file as authoritative.
 
-## AD-1 Build & module layout
+## AD-1 Solution & project layout
 
-- Single Gradle module (`customer-portal`), Kotlin DSL. No multi-module split
-  in this project.
-- Production code under `src/main/java/org/example/customerportal`.
-- Test code mirrors that package tree under `src/test/java`.
-- No new Gradle subprojects or source sets without an approved decision.
+- Single .NET solution (`CustomerPortal.sln`) with two projects: `CustomerPortal`
+  (production code) and `CustomerPortal.Tests` (test code). No further project
+  split in this training project.
+- Production code under `CustomerPortal/` using root namespace
+  `CustomerPortal`.
+- Test code mirrors the production namespace tree under `CustomerPortal.Tests/`.
+- No new projects or solution folders without an approved decision.
 
 ## AD-2 Layered architecture
 
@@ -20,62 +22,72 @@ are project decisions, not general framework advice. Skills
 Controller → Service → Repository → Database
 ```
 
-| Layer | Package | Responsibility | Must not |
+| Layer | Namespace | Responsibility | Must not |
 |---|---|---|---|
-| Controller | `controller` | HTTP mapping, request/response DTO binding, delegate to a Service, map Service outcomes to HTTP status | contain business rules; call a Repository; return an entity |
-| Service | `service` | all business logic, orchestration, transaction boundaries, mapping between entities and DTOs | depend on `jakarta.servlet` / `HttpServletRequest` / MVC types; call another Controller |
-| Repository | `repository` | Spring Data JPA interfaces, persistence queries only | contain business logic; call a Service |
-| Entity | `model.entity` | persisted domain state | be serialized as an API request/response |
+| Controller | `Controllers` | HTTP mapping, request/response DTO binding, delegate to a Service, map Service outcomes to HTTP status | contain business rules; call a Repository; return an entity |
+| Service | `Services` | all business logic, orchestration, transaction boundaries, mapping between entities and DTOs | depend on `HttpContext` / MVC types (`ControllerBase`, `IActionResult`); call another Service's Controller |
+| Repository | `Repositories` | EF Core queries against `AppDbContext` only | contain business logic; call a Service |
+| Entity | `Models.Entities` | persisted domain state | be serialized as an API request/response |
 
-Allowed dependency directions: `controller → service → repository`. Everything
-else in that set is forbidden (`controller → repository`,
-`controller → model.entity` as an API type, `repository → service`,
-`repository → controller`, `service → controller`).
+Allowed dependency directions: `Controllers → Services → Repositories`.
+Everything else in that set is forbidden (`Controllers → Repositories`,
+`Controllers → Models.Entities` as an API type, `Repositories → Services`,
+`Repositories → Controllers`, `Services → Controllers`).
 
 ## AD-3 Transaction boundary policy
 
 - Transactions begin and end in the **Service** layer.
-- Write operations: annotate the Service method (or class) with
-  `@Transactional`.
-- Read-only query methods: `@Transactional(readOnly = true)` when they issue
-  more than one repository call or need a consistent snapshot; otherwise the
-  repository call's implicit transaction is acceptable.
-- Controllers and Repositories must not open transactions.
-- No `@Transactional` on `private` methods or self-invoked methods (Spring proxy
-  limitation) — restructure instead.
+- A Service method that calls more than one Repository method, or that must
+  see a consistent snapshot, wraps the calls in an explicit
+  `IDbContextTransaction` (`await using var tx = await _db.Database
+  .BeginTransactionAsync();` … `await tx.CommitAsync();`).
+- A Service method that performs a single `SaveChangesAsync()` relies on EF
+  Core's implicit per-`SaveChanges` transaction — no explicit transaction
+  object needed.
+- Controllers and Repositories must not open a transaction or call
+  `SaveChangesAsync()`.
+- `DbContext` is registered scoped (per-request) via
+  `AddDbContext<AppDbContext>()`; no manual `DbContext` lifetime management in
+  a Controller or Service.
 
 ## AD-4 DTO / entity boundary
 
-- Every API request body binds to a class in `model.request`.
-- Every API response body is a class in `model.dto`.
-- Entities (`model.entity`) never appear in a Controller signature, a request
-  body, or a response body.
-- Mapping entity ↔ DTO/request happens in the Service layer (a dedicated mapper
-  class is allowed; a mapping library is not added without an approved
-  decision).
-- A response DTO includes only fields the API contract lists. Credential fields
-  (password, password hash) are never present on a response DTO, even as
-  `null`.
+- Every API request body binds to a `record` or `class` in `Models.Requests`.
+- Every API response body is a `record` or `class` in `Models.Dtos`.
+- Entities (`Models.Entities`) never appear in a Controller action signature, a
+  request body, or a response body.
+- Mapping entity ↔ DTO/request happens in the Service layer (a dedicated
+  mapper class/extension method is allowed; a mapping library such as
+  AutoMapper/Mapster is not added without an approved decision).
+- A response DTO includes only fields the API contract lists. Credential
+  fields (password, password hash) are never present on a response DTO, even
+  as `null`.
 
 ## AD-5 Validation boundary
 
-- Request-shape validation (required, length, format, allowed values): Bean
-  Validation annotations on the `model.request` class, triggered by `@Valid` on
-  the Controller parameter. `spring-boot-starter-validation` is a required
-  dependency for this.
-- Business-rule validation (uniqueness, cross-field rules, state checks): in the
-  Service layer, before persistence.
-- Custom constraint annotations live in the `validation` package.
+- Request-shape validation (required, length, format, allowed values):
+  FluentValidation validators (`AbstractValidator<TRequest>`) in the
+  `Validation` namespace, one validator class per request type, registered via
+  `AddValidatorsFromAssemblyContaining<...>()` and run automatically through
+  the FluentValidation ASP.NET Core auto-validation filter. `FluentValidation`
+  and `FluentValidation.AspNetCore` are required dependencies for this.
+- Business-rule validation (uniqueness, cross-field rules, state checks): in
+  the Service layer, before persistence.
+- Custom, reusable validation rules live as extension methods or custom
+  `PropertyValidator` classes in the `Validation` namespace.
 - Validation is server-side and independent of any client.
 
 ## AD-6 Exception handling architecture
 
-- One `@RestControllerAdvice` class in the `exception` package is the single
-  place that maps exceptions to HTTP responses.
-- Domain/application exceptions are declared in the `exception` package
-  (e.g. `DuplicateEmailException`, `ResourceNotFoundException`). Services throw
-  these; they carry no HTTP concepts.
-- The advice maps: bean-validation failure → 400; domain "not found" → 404;
+- One `GlobalExceptionHandler` class in the `Exceptions` namespace,
+  implementing `IExceptionHandler` (registered via
+  `AddExceptionHandler<GlobalExceptionHandler>()` +
+  `UseExceptionHandler(_ => { })`), is the single place that maps exceptions
+  to HTTP responses.
+- Domain/application exceptions are declared in the `Exceptions` namespace
+  (e.g. `DuplicateEmailException`, `ResourceNotFoundException`). Services
+  throw these; they carry no HTTP concepts.
+- The handler maps: FluentValidation failure → 400; domain "not found" → 404;
   domain "conflict/duplicate" → 409; authn failure → 401; authz failure → 403;
   anything unmapped → 500.
 - Every error response body uses the structure defined in
@@ -84,14 +96,21 @@ else in that set is forbidden (`controller → repository`,
 
 ## AD-7 Configuration boundaries
 
-- Framework/infrastructure `@Configuration` classes live in `config`.
-- Security configuration lives in `security` (see `security-conventions.md`).
-- No business logic in a `@Configuration` class.
-- Application settings come from `application.yml` / profile files, never
-  hard-coded; secrets never committed (see `security-conventions.md`).
+- Framework/infrastructure service registration (DI wiring, EF Core, MVC,
+  Swagger/OpenAPI) lives in `Program.cs`, factored into `IServiceCollection`
+  extension methods under `Config` (e.g. `AddPersistence()`,
+  `AddApplicationServices()`) when `Program.cs` would otherwise grow past a
+  handful of calls.
+- Security/authentication/authorization registration lives in `Security` (see
+  `security-conventions.md`).
+- No business logic in a `Config` extension method.
+- Application settings come from `appsettings.json` /
+  `appsettings.{Environment}.json` / environment variables, never hard-coded;
+  secrets never committed (see `security-conventions.md`).
 
 ## AD-8 Reuse over duplication
 
 Before creating a component, check for an existing one that can be extended
-within these rules. New packages beyond the map in `package-map.md` require an
-approved decision (an Open Decision resolved by a human, not a silent addition).
+within these rules. New namespaces beyond the map in `package-map.md` require
+an approved decision (an Open Decision resolved by a human, not a silent
+addition).

@@ -156,17 +156,17 @@ Use contract tests for:
 
 Use integration tests for:
 
-- Spring MVC request handling;
-- Spring Security behavior;
+- ASP.NET Core MVC request handling;
+- authentication/authorization behavior;
 - service and repository integration;
-- JPA mappings;
+- EF Core entity mappings;
 - database constraints;
 - transaction behavior;
 - serialization and deserialization;
 - application configuration relevant to the story.
 
-For the training project, integration tests may use the configured embedded H2
-database.
+For the training project, integration tests may use the configured isolated
+in-memory SQLite database.
 
 Tests must not depend on data from previous test runs.
 
@@ -178,7 +178,7 @@ Use unit tests for:
 - validation logic;
 - transformations;
 - deterministic service behavior;
-- branching logic that can be tested without Spring context.
+- branching logic that can be tested without an ASP.NET Core host/DI context.
 
 Do not create unit tests that only verify framework behavior.
 
@@ -280,7 +280,7 @@ A failing test is not acceptable when caused by:
 - syntax errors;
 - invalid imports;
 - missing test dependencies that should already exist;
-- incorrect Spring configuration created by the test;
+- incorrect application/DI configuration created by the test;
 - invalid fixtures;
 - incorrect assertions;
 - a contradiction with approved requirements.
@@ -418,7 +418,7 @@ Persistence-related tests must validate approved constraints, including:
 - default values;
 - identifier behavior.
 
-Do not infer database constraints from JPA defaults.
+Do not infer database constraints from EF Core convention defaults.
 
 Do not modify database design artifacts from this Skill.
 

@@ -43,14 +43,15 @@ If the Specification explicitly states no persistence change: emit
 Per the Specification, API design, and `persistence-conventions.md`:
 
 - entities and attributes, each traced to a business concept;
-- explicit column length, nullability, uniqueness — no JPA defaults;
+- explicit column length, nullability, uniqueness — no EF Core convention defaults;
 - primary keys (surrogate, generated), foreign keys, indexes where required;
 - relationships and cardinality;
 - identifier type and generation strategy per `persistence-conventions.md`;
 - audit timestamp columns per `persistence-conventions.md`;
 - sensitive data (password hash, tokens, PII): storage rules, never plaintext;
 - schema-initialization approach consistent with `persistence-conventions.md`
-  (explicit schema design, not a `ddl-auto` shortcut).
+  (explicit schema design via reviewed EF Core Migrations, not an
+  `EnsureCreated()`/`EnsureDeleted()` shortcut).
 
 # Outputs
 
