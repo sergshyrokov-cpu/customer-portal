@@ -1,10 +1,10 @@
 ---
 artifact_type: specification
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: DRAFT
 created_at: 2026-08-31T00:33:59Z
-updated_at: 2026-08-31T07:48:48Z
+updated_at: 2026-09-01T11:11:06Z
 produced_by: spec-writer
 inputs:
   - path: docs/stories/US-001-register-customer.md
@@ -13,10 +13,22 @@ inputs:
     version: 1
   - path: docs/decisions/US-001-open-decisions.md
     version: 1
-supersedes: null
+supersedes: docs/specifications/US-001-spec.md v1
 ---
 
 # Specification — US-001 Customer Registration
+
+> **v2 revision note:** corrects FR-5, FR-10, SEC-2, SEC-5, SEC-9, SEC-10,
+> NFR-4, §6.1, §6.2, and the OD-001/OD-006 impact notes, which named
+> retired Spring/JPA/Hibernate mechanisms (JPA auditing, `@RestControllerAdvice`,
+> `BCryptPasswordEncoder`, `ROLE_` prefix, H2 console, Hibernate `ddl-auto` /
+> hand-written `schema.sql`, Jakarta `@Email`, `Long id`) no longer valid
+> after the project's technology re-platform to ASP.NET Core/EF Core/SQLite.
+> No Acceptance Criterion, validation value, or business rule changed —
+> only implementation-mechanism references were corrected to match the
+> rewritten `docs/architecture/*.md`. See
+> `docs/reviews/reconciliation/US-001-reconciliation.md` v2 §21 for the
+> finding that triggered this revision.
 
 ## 1. Overview
 
@@ -59,12 +71,12 @@ self-registration is an MVP success criterion.
 | FR-2 | The request body SHALL be `application/json` with exactly two fields: `email` (string) and `password` (string). A request without `Content-Type: application/json` SHALL be rejected with `415`. |
 | FR-3 | The system SHALL validate `email` and `password` per section 6 before any persistence access; on failure it SHALL return `400` with the `api-conventions.md` AC-6 body including a `fieldErrors[]` entry per failed field, and SHALL NOT create an account. |
 | FR-4 | The system SHALL reject a registration whose `email` matches an existing account, compared case-insensitively, without creating a second account. The response is governed by **OD-003** (draft: `409 Conflict` with the AC-6 body and message "An account with this email already exists."). |
-| FR-5 | On successful validation and uniqueness check, the system SHALL persist a new Customer with: the submitted email, a BCrypt hash of the submitted password stored in `password_hash`, role `CUSTOMER`, `enabled = true`, and `created_at` / `updated_at` set in UTC via JPA auditing. |
+| FR-5 | On successful validation and uniqueness check, the system SHALL persist a new Customer with: the submitted email, a BCrypt hash of the submitted password stored in `password_hash`, role `CUSTOMER`, `enabled = true`, and `created_at` / `updated_at` set in UTC (`persistence-conventions.md` PC-6). |
 | FR-6 | The system SHALL re-check the password against the policy in the Service layer before hashing, in addition to request-layer validation (`security-conventions.md` SC-1). |
 | FR-7 | The system SHALL NOT persist, log, or return the plaintext password or the password hash at any point (`security-conventions.md` SC-1, SC-9; AC-004, AC-005). |
 | FR-8 | On success the system SHALL return `201 Created`, a `Location` header pointing at the created resource (`/api/v1/customers/{id}`), and a JSON body whose fields are governed by **OD-004** (draft: `id`, `email`, `role`, `createdAt`). |
 | FR-9 | The newly created account SHALL be immediately usable as an authentication subject once US-002 exists — i.e. the stored hash verifies against the submitted password and the role is present. No activation step is required. |
-| FR-10 | Exception-to-HTTP mapping SHALL occur only in the single `@RestControllerAdvice` in the `exception` package (`api-conventions.md` AC-9). Controllers SHALL NOT build error responses. |
+| FR-10 | Exception-to-HTTP mapping SHALL occur only in the single `GlobalExceptionHandler` in the `Exceptions` namespace (`api-conventions.md` AC-9; `architecture.md` AD-6). Controllers SHALL NOT build error responses. |
 | FR-11 | The CSRF posture of `POST /api/v1/customers` SHALL follow the decision recorded in **OD-002** (draft: exempt this single public path from CSRF, CSRF remains enabled elsewhere). |
 
 ## 5. Acceptance Criteria
@@ -91,7 +103,7 @@ NFR-002).
 | Rule | Value | On failure |
 |---|---|---|
 | Required | must be present and non-blank | `400`, `fieldErrors[].field = "email"` |
-| Format | valid email address — **OD-001** (draft: Jakarta `@Email` semantics: non-empty local part, `@`, domain) | `400`, `fieldErrors[].field = "email"` |
+| Format | valid email address — **OD-001** (draft: standard email-address shape: non-empty local part, `@`, domain, enforced by a FluentValidation rule) | `400`, `fieldErrors[].field = "email"` |
 | Max length | **OD-001** (draft: 254 characters) | `400`, `fieldErrors[].field = "email"` |
 | Uniqueness | no existing account with the same email, compared case-insensitively (`business-rules.md` BR-001, BR-002) | per **OD-003** (draft: `409`) |
 
@@ -102,8 +114,8 @@ unique index) is deferred to DB_DESIGN per **OD-006**; the requirement
 ### 6.2 `password`
 
 Policy from `security-conventions.md` SC-1 / the training-project security
-policy block. Enforced by a custom constraint in the `validation` package
-**and** re-checked in the Service before hashing.
+policy block. Enforced by a FluentValidation custom rule in the `Validation`
+namespace **and** re-checked in the Service before hashing.
 
 | Rule | Value | On failure |
 |---|---|---|
@@ -133,15 +145,15 @@ invented.
 | id | Requirement | Source |
 |---|---|---|
 | SEC-1 | `POST /api/v1/customers` is the only public endpoint added by this Story; every other endpoint remains deny-by-default. | SC-4 |
-| SEC-2 | Passwords are hashed with `BCryptPasswordEncoder` (default strength); a plaintext/no-op encoder is forbidden. The encoder bean lives in the `security` package. | SC-1 |
+| SEC-2 | Passwords are hashed with the approved BCrypt hasher (`BCrypt.Net-Next`, default work factor); a plaintext/no-op hasher is forbidden. The hasher implementation lives in the `Security` namespace. | SC-1 |
 | SEC-3 | The plaintext password appears only on the inbound request DTO. It is never placed on a response DTO, never persisted, never logged, never included in an error message. | SC-1, SC-9 |
 | SEC-4 | The password hash is stored only in `password_hash` and is never returned by any endpoint. | SC-1, PC-9 |
-| SEC-5 | The new account is created with authority `ROLE_CUSTOMER` and `enabled = true`. | SC-2 |
+| SEC-5 | The new account is created with role claim value `CUSTOMER` (no `ROLE_` prefix) and `enabled = true`. | SC-2 |
 | SEC-6 | Error responses never leak stack traces, SQL, entity/class names, file paths, or database URLs. | SC-9, AC-6 |
 | SEC-7 | CSRF handling for the registration path follows **OD-002**. If the path is exempted, that is recorded as the Story's architecture decision as SC-5 requires. | SC-5, OD-002 |
 | SEC-8 | The duplicate-email response follows **OD-003**. Any account-enumeration exposure it introduces is an accepted, human-approved decision, not a default. | OD-003 |
-| SEC-9 | `spring.h2.console.enabled=false` remains in every profile; this Story does not change it. | SC-6 |
-| SEC-10 | Hibernate `ddl-auto` stays `validate` or `none`; the schema change for this Story is hand-written in `schema.sql`. | SC-8, PC-2 |
+| SEC-9 | No database browser/admin UI is registered or exposed in any profile; this Story does not change it. | SC-6 |
+| SEC-10 | The schema change for this Story is a committed, reviewed EF Core Migration; `Database.EnsureCreated()` / `EnsureDeleted()` are not used outside an isolated test database. | SC-8, PC-2 |
 | SEC-11 | No secrets are introduced or committed by this Story. | SC-7 |
 
 Anti-abuse / rate limiting on the registration endpoint is **out of scope** for
@@ -150,7 +162,7 @@ US-001 per **OD-005**.
 ## 8. Error Handling
 
 All error responses use the `api-conventions.md` AC-6 JSON shape, produced by
-the single `@RestControllerAdvice` (AC-9).
+the single `GlobalExceptionHandler` (AC-9).
 
 | Condition | Status | `error` | Notes |
 |---|---|---|---|
@@ -168,7 +180,7 @@ the single `@RestControllerAdvice` (AC-9).
 | NFR-1 | Passwords stored using BCrypt. | NFR-001, SC-1 |
 | NFR-2 | All user input validated server-side. | NFR-002 |
 | NFR-3 | REST conventions followed (`/api/v1`, plural nouns, JSON, status codes, AC-6 error body). | NFR-003, `api-conventions.md` |
-| NFR-4 | The Customer entity declares explicit column lengths, nullability, and the email uniqueness constraint; surrogate `Long id`; `created_at` / `updated_at` in UTC. | NFR-004, PC-3–PC-6, BR-007 |
+| NFR-4 | The Customer entity declares explicit column lengths, nullability, and the email uniqueness constraint; surrogate `long Id`; `created_at` / `updated_at` in UTC. | NFR-004, PC-3–PC-6, BR-007 |
 | NFR-5 | New functionality includes happy-path, validation, and security tests. | NFR-005 |
 | NFR-6 | Implementation is traceable to this Story, this Specification, and the test artifacts. | NFR-006 |
 | NFR-7 | The build succeeds before the change is considered complete. | NFR-007 |
@@ -194,12 +206,12 @@ its OD id and a "draft" assumption reflecting the recommended option.
 
 | id | Question | Requirements it governs | Impact if the recommendation is not chosen |
 |---|---|---|---|
-| OD-001 | Email max length + accepted format | FR-3, §6.1, AC-003 | Column length and the `@Email`/regex rule in API & DB design change; validation test vectors change. |
+| OD-001 | Email max length + accepted format | FR-3, §6.1, AC-003 | Column length and the email-format/regex rule in API & DB design change; validation test vectors change. |
 | OD-002 | CSRF classification of the registration endpoint | FR-11, SEC-7 | If CSRF stays enabled, the client must fetch a token first and the endpoint contract / tests gain a CSRF step; security config differs. |
 | OD-003 | Duplicate-email response vs. account enumeration | FR-4, AC-002, §6.1, §8, SEC-8 | If a neutral/non-disclosing response is chosen, AC-002's observable outcome, the status code, the error body, and the duplicate-email tests all change. |
 | OD-004 | Fields in the `201` response body | FR-8, AC-005 | Response DTO field list in API design and the success-path assertions change. |
 | OD-005 | Anti-abuse controls on registration | §7, §10 | If in scope, new functional + security requirements and tests are added. |
-| OD-006 | Email normalization mechanism | §6.1, DB design | DB_DESIGN chooses; entity/`schema.sql`/repository query differ, but no change to externally observable behavior. |
+| OD-006 | Email normalization mechanism | §6.1, DB design | DB_DESIGN chooses; entity configuration/migration/repository query differ, but no change to externally observable behavior. |
 
 None of these prevent stating the mandatory requirements — each is captured as a
 documented gap with a draft assumption. Verdict is therefore not `BLOCKED`.
@@ -239,5 +251,5 @@ documented gap with a draft assumption. Verdict is therefore not `BLOCKED`.
 | Case-insensitive unique email, one account per customer | `business-rules.md` BR-001, BR-002, BR-003 |
 | Default role `CUSTOMER`, enabled account | BR-006, SC-2 |
 | UTC timestamps, explicit column mapping, `password_hash VARCHAR(60)` | BR-007, PC-3–PC-6, PC-9 |
-| AC-6 error body, single `@RestControllerAdvice` | `api-conventions.md` AC-5, AC-6, AC-9 |
+| AC-6 error body, single `GlobalExceptionHandler` | `api-conventions.md` AC-5, AC-6, AC-9 |
 | Layering, build stability, test coverage, traceability | `non-functional-requirements.md` NFR-005–NFR-008 |

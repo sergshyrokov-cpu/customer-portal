@@ -220,7 +220,7 @@ stages:
 
   IMPLEMENTATION:
     type: automated_skill
-    skill: springboot-implementor
+    skill: aspnet-implementor
     inputs: [story, open_decisions, specification, specification_review,
              impact_analysis, implementation_plan, plan_review, api_design,
              openapi, database_design, entity_model, test_strategy, ac_test_matrix]

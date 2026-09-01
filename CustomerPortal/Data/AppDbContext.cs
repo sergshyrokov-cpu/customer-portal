@@ -1,3 +1,4 @@
+using CustomerPortal.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CustomerPortal.Data;
@@ -7,6 +8,8 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
+
+    public DbSet<Customer> Customers => Set<Customer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

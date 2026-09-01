@@ -7,11 +7,18 @@ Explicit persistence decisions for this project. `db-designer` and
 ## PC-1 Database & runtime mode
 
 - SQLite, **file-based**, for local training runs. Connection string form:
-  `Data Source=./data/customer-portal.db` (project-relative `./data/`
-  directory), registered via `AddDbContext<AppDbContext>(o =>
-  o.UseSqlite(connectionString))`.
-- The generated database file (`./data/*.db`, `*.db-shm`, `*.db-wal`) is
-  **not** committed — it is covered by `.gitignore`.
+  `Data Source=./App_Data/customer-portal.db` (project-relative
+  `./App_Data/` directory), registered via `AddDbContext<AppDbContext>(o =>
+  o.UseSqlite(connectionString))`. `App_Data` (not `data`) is deliberate:
+  `dotnet run`'s working directory is the project directory, and on a
+  case-insensitive filesystem a lowercase `data/` collides with the
+  `Data/` namespace folder (`CustomerPortal/Data/`) — confirmed during
+  US-001 implementation, where this collision briefly deleted real source
+  files via an unrelated cleanup command. `App_Data` cannot collide with
+  any C# namespace.
+- The generated database file (`./App_Data/*.db`, `*.db-shm`, `*.db-wal`)
+  is **not** committed — it is covered by `.gitignore` (by extension, not
+  by folder name).
 - Automated tests use an **isolated in-memory** SQLite connection per test
   class (`Data Source=:memory:`, keeping one `SqliteConnection` open for the
   `DbContext`'s lifetime), never the file database.

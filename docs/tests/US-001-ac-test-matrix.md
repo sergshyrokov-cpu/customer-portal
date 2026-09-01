@@ -1,124 +1,65 @@
 ---
 artifact_type: ac_test_matrix
 story: US-001
-version: 1
+version: 2
 status: DRAFT
 created_at: 2026-08-31T11:25:00Z
-updated_at: 2026-08-31T11:25:00Z
+updated_at: 2026-09-01T12:09:46Z
 produced_by: test-writer
 inputs:
-  - path: docs/stories/US-001-register-customer.md
-    version: null
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
-  - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
-  - path: docs/designs/database/US-001-db-design.md
-    version: 1
-  - path: docs/designs/database/US-001-entity-model.md
-    version: 1
-  - path: docs/impact-analysis/US-001-impact-analysis.md
-    version: 1
+    version: 2
   - path: docs/plans/US-001-implementation-plan.md
-    version: 1
-  - path: docs/reviews/plans/US-001-plan-review.md
-    version: 1
-supersedes: null
+    version: 2
+supersedes: docs/tests/US-001-ac-test-matrix.md v1
 ---
 
-# Acceptance-Criteria → Test Matrix — US-001
+# Acceptance Criteria → Test Matrix — US-001 Customer Registration (v2)
 
-This matrix is **authoritative**. `implementation-verifier`, `security-reviewer`
-and `reconciliation-reviewer` read it; they do not rebuild it.
-
-`Status` is the state **at `TEST_WRITING` (pre-implementation)**:
-
-- `RED` — compiles, runs, fails because the feature is not implemented yet
-  (expected; see the test-generation report for the exact failure).
-- `GREEN (guard)` — already satisfied; kept as a regression guard.
-- `DEFERRED → IMPLEMENTATION` — scenario needs a production type that does not
-  exist yet; specified here in full, owned by the named plan test skeleton.
-  `IMPLEMENTATION` chooses the concrete method names (plan C-T1..C-T6 are
-  "indicative"); the **scenario + expected result** columns are the binding
-  contract for these rows.
-
-Base test package: `org.example.customerportal` (mirrors production tree,
-`package-map.md` test rule).
-
-## 1. Story / Specification Acceptance Criteria
-
-| AC | Scenario | Level | Test class | Test method | Expected result | Status |
+| AC | Scenario | Test Level | Test Class | Test Method | Expected Result | Status |
 |---|---|---|---|---|---|---|
-| AC-001 | Valid email + 12-char compliant password | web | `registration.CustomerRegistrationApiTest` | `validRegistrationReturns201WithLocationAndCustomerBody` | `201`; `Location` matches `.*/api/v1/customers/\d+`; body `{id:number, email, role:"CUSTOMER", createdAt}` | RED |
-| AC-001 | Mixed-case email normalized to lowercase (OD-006:A) | web | `registration.CustomerRegistrationApiTest` | `emailIsStoredAndReturnedNormalisedToLowercase` | `201`; `$.email` equals the lowercased input | RED |
-| AC-001 | 72-byte compliant password accepted (upper boundary) | web | `registration.CustomerRegistrationApiTest` | `password72CharsMeetingPolicyIsAccepted` | `201` | RED |
-| AC-001 | Registration reachable without authentication (SEC-1) | security | `security.RegistrationSecurityPostureTest` | `registrationEndpointIsReachableWithoutAuthentication` | status not `401` and not `403` | RED |
-| AC-001 | Stored credential is a BCrypt hash of the submitted password; role present (authenticate-later clause, verified indirectly) | service | `service.CustomerServiceTest` (plan C-T3) | _(method named by IMPLEMENTATION)_ | `BCryptPasswordEncoder.matches(raw, storedHash)` is true; `role == CUSTOMER` | DEFERRED → IMPLEMENTATION |
-| AC-002 | Duplicate email, second attempt different case → `409`, one resource | web | `registration.CustomerRegistrationApiTest` | `duplicateEmailIsRejectedCaseInsensitivelyWith409` | `409`; `$.status==409`; `$.message=="An account with this email already exists."` | RED |
-| AC-002 | `email` has a `UNIQUE` constraint | persistence | `persistence.CustomerSchemaTest` | `emailHasAUniqueConstraint` | a `UNIQUE` `TABLE_CONSTRAINT` covers `EMAIL` | RED |
-| AC-002 | Two rows, same normalized email → constraint violation | persistence | `persistence.CustomerSchemaTest` | `caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint` | second `INSERT` throws | RED |
-| AC-002 | Service detects the duplicate before insert and throws `DuplicateEmailException` (same + different case) | service | `service.CustomerServiceTest` (plan C-T3) | _(method named by IMPLEMENTATION)_ | exception thrown; repository `save` not called for the second attempt | DEFERRED → IMPLEMENTATION |
-| AC-003 | Malformed email format | web | `registration.CustomerRegistrationApiTest` | `malformedEmailReturns400WithEmailFieldError` | `400`; `$.fieldErrors[*].field` has `email` | RED |
-| AC-003 | Blank email | web | `registration.CustomerRegistrationApiTest` | `blankEmailReturns400WithEmailFieldError` | `400`; `fieldErrors` has `email` | RED |
-| AC-003 | Email longer than 254 chars (OD-001:A) | web | `registration.CustomerRegistrationApiTest` | `emailLongerThan254CharsReturns400WithEmailFieldError` | `400`; `fieldErrors` has `email` | RED |
-| AC-003 | `email` column is `VARCHAR(254) NOT NULL` | persistence | `persistence.CustomerSchemaTest` | `emailColumnIsVarchar254NotNull` | type `CHARACTER VARYING`, length `254`, not nullable | RED |
-| AC-004 | `password_hash` column is `VARCHAR(60) NOT NULL` (PC-9) | persistence | `persistence.CustomerSchemaTest` | `passwordHashColumnIsVarchar60NotNull` | type `CHARACTER VARYING`, length `60`, not nullable | RED |
-| AC-004 | No plaintext-password column exists (BR-005, SEC-3) | persistence | `persistence.CustomerSchemaTest` | `noPlaintextPasswordColumnExists` | zero columns named `PASSWORD` | GREEN (guard) |
-| AC-004 | `customer` table exists (hand-written schema) | persistence | `persistence.CustomerSchemaTest` | `customerTableExists` | exactly one `CUSTOMER` table | RED |
-| AC-004 | Stored hash is a BCrypt string, not the plaintext; plaintext never assigned to the entity | service | `service.CustomerServiceTest` (plan C-T3) | _(method named by IMPLEMENTATION)_ | `storedHash` matches `^\$2[aby]\$\d\d\$.{53}$` and `!= rawPassword` | DEFERRED → IMPLEMENTATION |
-| AC-005 | Success response excludes password, hash, `enabled`, `updatedAt` | web | `registration.CustomerRegistrationApiTest` | `successResponseNeverExposesCredentialOrInternalState` | `$.password`, `$.passwordHash`, `$.password_hash`, `$.enabled`, `$.updatedAt` all absent | RED |
-| AC-006 | Password shorter than 12 chars | web | `registration.CustomerRegistrationApiTest` | `passwordShorterThan12CharsReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | Password without uppercase | web | `registration.CustomerRegistrationApiTest` | `passwordWithoutUppercaseReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | Password without lowercase | web | `registration.CustomerRegistrationApiTest` | `passwordWithoutLowercaseReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | Password without digit | web | `registration.CustomerRegistrationApiTest` | `passwordWithoutDigitReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | Password without special char | web | `registration.CustomerRegistrationApiTest` | `passwordWithoutSpecialCharReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | Blank password | web | `registration.CustomerRegistrationApiTest` | `blankPasswordReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` | RED |
-| AC-006 | **Byte-length boundary (R-3 / PD-2):** `"Aa1!"+"€"×23` = 27 chars / 73 bytes | web | `registration.CustomerRegistrationApiTest` | `passwordOver72BytesButUnder72CharsReturns400WithPasswordFieldError` | `400`; `fieldErrors` has `password` (fails if length is counted in characters) | RED |
-| AC-006 | Exhaustive validator matrix: 11-byte reject, 12-byte accept, 72-byte accept, 73-byte reject; each of upper/lower/digit/special missing → reject; multi-byte `"Aa1!"+"€"×23` (73 bytes) reject; `"Aa1!"+"€"×22`+`"b"` (69 bytes) accept; message contains no submitted value | unit | `validation.PasswordPolicyValidatorTest` (plan C-T1) | _(methods named by IMPLEMENTATION; parameterised per vector)_ | `isValid` returns the expected boolean; violation message is the static generic text | DEFERRED → IMPLEMENTATION |
-| AC-006 | Service re-checks the byte-length policy before hashing (FR-6) | service | `service.CustomerServiceTest` (plan C-T3) | _(method named by IMPLEMENTATION)_ | service throws before `passwordEncoder.encode` | DEFERRED → IMPLEMENTATION |
-| AC-007 | `Content-Type: text/plain` | web | `registration.CustomerRegistrationApiTest` | `nonJsonContentTypeReturns415` | `415` | RED |
-| AC-007 | Missing `Content-Type` | web | `registration.CustomerRegistrationApiTest` | `missingContentTypeReturns415` | `415` | RED |
+| AC-001 | Valid registration | Integration | `CustomerRegistrationApiTests` | `PostCustomers_ValidRequest_Returns201WithLocationAndSafeBody` | `201`, `Location` header, `CustomerResponse` with `role=CUSTOMER` | Written, compiles, RED (endpoint absent — 404 until Controller exists) |
+| AC-001 | Valid registration — orchestration | Unit | `CustomerServiceTests` | `RegisterAsync_ValidRequest_CreatesEnabledCustomerWithCustomerRole` | response has `role="CUSTOMER"` | Written, RED (`CS0246`: `Customer`/`ICustomerRepository` not found) |
+| AC-002 | Duplicate email, same case | Unit | `CustomerServiceTests` | `RegisterAsync_DuplicateEmailCaseInsensitive_ThrowsDuplicateEmailException` | throws `DuplicateEmailException` | Written, RED (compile) |
+| AC-002 | Duplicate email, HTTP | Integration | `CustomerRegistrationApiTests` | `PostCustomers_DuplicateEmail_Returns409` | `409` | Written, compiles, RED (endpoint absent) |
+| AC-002 | Duplicate email, exact-case DB constraint | Persistence | `CustomerPersistenceTests` | `SaveChanges_ExactDuplicateEmail_ThrowsOnUniqueConstraint` | `DbUpdateException` | Written, RED (compile) |
+| AC-002 | Email normalized before uniqueness check | Unit | `CustomerServiceTests` | `RegisterAsync_EmailDiffersOnlyByCase_NormalizedToLowercaseBeforeStorage` | stored key is lowercase | Written, RED (compile) |
+| AC-003 | Invalid email format | Unit | `RegistrationRequestValidatorTests` | `Validate_InvalidEmailFormat_IsInvalid` | `Email` field error | Written, RED (`CS0246`: `RegistrationRequestValidator` not found) |
+| AC-003 | Missing email | Unit | `RegistrationRequestValidatorTests` | `Validate_MissingEmail_IsInvalidWithEmailFieldError` | `Email` field error | Written, RED (compile) |
+| AC-003 | Email over 254 chars | Unit / Boundary | `RegistrationRequestValidatorTests` | `Validate_EmailExceeding254Characters_IsInvalid` | `Email` field error | Written, RED (compile) |
+| AC-003 | Invalid email, HTTP | Integration | `CustomerRegistrationApiTests` | `PostCustomers_InvalidEmailFormat_Returns400WithEmailFieldError` | `400`, `fieldErrors[].field="email"` | Written, compiles, RED (endpoint absent) |
+| AC-004 | Password hashed, not plaintext | Unit | `CustomerServiceTests` | `RegisterAsync_ValidRequest_PersistsHashedPasswordNotPlaintext` | stored value ≠ plaintext, equals hasher output | Written, RED (compile) |
+| AC-004 | Stored account enabled | Unit | `CustomerServiceTests` | `RegisterAsync_ValidRequest_SetsEnabledTrue` | `Enabled == true` | Written, RED (compile) |
+| AC-004 | Audit timestamps UTC | Persistence | `CustomerPersistenceTests` | `SaveChanges_NewCustomer_SetsCreatedAtAndUpdatedAtInUtc` | `CreatedAt`/`UpdatedAt` offset zero, equal on insert | Written, RED (compile) |
+| AC-005 | Response excludes credentials | Integration | `CustomerRegistrationApiTests` | `PostCustomers_ValidRequest_Returns201WithLocationAndSafeBody` (same method, additional assertions) | no `password`/`passwordHash` property in body | Written, compiles, RED (endpoint absent) |
+| AC-005 | Response body never contains password/hash | Security | `RegistrationSecurityPostureTests` | `PostCustomers_SuccessfulRegistration_ResponseBodyContainsNoPasswordOrHash` | raw body excludes plaintext and `passwordHash` | Written, compiles, RED (endpoint absent) |
+| AC-006 | Password policy violations (5 cases) | Unit / Boundary | `RegistrationRequestValidatorTests` | `Validate_PasswordViolatesPolicy_IsInvalidWithPasswordFieldError` (`[Theory]`, 5 `InlineData` cases) | `Password` field error | Written, RED (compile) |
+| AC-006 | Password meets policy | Unit | `RegistrationRequestValidatorTests` | `Validate_PasswordMeetsPolicy_PasswordRuleIsValid` | no `Password` error | Written, RED (compile) |
+| AC-006 | Password exactly 72 bytes | Unit / Boundary | `RegistrationRequestValidatorTests` | `Validate_PasswordExactly72AsciiBytes_IsValid` | no `Password` error | Written, RED (compile) |
+| AC-006 | Password over 72 bytes via multi-byte char | Unit / Boundary | `RegistrationRequestValidatorTests` | `Validate_PasswordMultiByteCharacterPushingByteLengthOver72_IsInvalid` | `Password` field error | Written, RED (compile) |
+| AC-006 | Validation message never echoes value | Security / Unit | `RegistrationRequestValidatorTests` | `Validate_PasswordFailureMessage_NeverEchoesSubmittedValue` | error message excludes submitted string | Written, RED (compile) |
+| AC-006 | Weak password, HTTP | Integration | `CustomerRegistrationApiTests` | `PostCustomers_WeakPassword_Returns400WithPasswordFieldError` | `400`, `fieldErrors[].field="password"` | Written, compiles, RED (endpoint absent) |
+| AC-007 | Missing `Content-Type` | Integration | `CustomerRegistrationApiTests` | `PostCustomers_MissingContentType_Returns415` | `415` | Written, compiles, RED (endpoint absent) |
+| (derived, Spec §6.3) | Unknown JSON field rejected | Integration | `CustomerRegistrationApiTests` | `PostCustomers_UnknownJsonField_Returns400` | `400` | Written, compiles, RED (endpoint absent) |
+| (derived, SC-4) | New endpoint not rejected unauthenticated | Security | `RegistrationSecurityPostureTests` | `PostCustomers_Unauthenticated_IsNotRejectedForLackOfAuthentication` | not `401`/`403` | Written, compiles, RED (endpoint absent — currently 404) |
+| (derived, SC-4) | Global fallback policy configured | Security | `RegistrationSecurityPostureTests` | `AuthorizationFallbackPolicy_RequiresAuthenticatedUser` | fallback policy requires authenticated user | Written, compiles, **currently FAILING for the intended reason** (no fallback policy configured yet in `Program.cs`) |
+| DB constraints (PC-4/PC-9) | `Email`/`PasswordHash` column metadata | Persistence | `CustomerPersistenceTests` | `CustomerConfiguration_EmailProperty_HasMaxLength254AndIsRequired`, `CustomerConfiguration_PasswordHashProperty_HasMaxLength60AndIsRequired` | max length / nullability match db-design v2 §4.2 | Written, RED (compile) |
+| DB constraints (PC-7) | Unique index on `Email` | Persistence | `CustomerPersistenceTests` | `CustomerConfiguration_EmailIndex_IsUnique` | index `IsUnique == true` | Written, RED (compile) |
 
-## 2. Derived rules (Specification §6.3, API design §3)
+Every Acceptance Criterion (AC-001..AC-007) has at least one mapped
+scenario across at least two test levels. No mandatory AC is uncovered.
 
-| Rule | Scenario | Level | Test class | Test method | Expected | Status |
-|---|---|---|---|---|---|---|
-| Unknown JSON property rejected (`additionalProperties:false`) | body has an extra `role` field | web | `registration.CustomerRegistrationApiTest` | `unknownJsonPropertyReturns400` | `400`; `$.status==400` | RED |
-| Malformed JSON rejected | truncated JSON body | web | `registration.CustomerRegistrationApiTest` | `malformedJsonReturns400` | `400`; `$.status==400` | RED |
-| AC-6 error-body shape | `400` body has `timestamp, status, error, message, path` | web | `registration.CustomerRegistrationApiTest` | `errorBodyHasTheApiConventionShape` | all five fields present; `path == "/api/v1/customers"` | RED |
-
-## 3. Security posture (Specification §7, OD-002:B)
-
-| Requirement | Scenario | Level | Test class | Test method | Expected | Status |
-|---|---|---|---|---|---|---|
-| SEC-7 / OD-002:B CSRF exemption scoped to the registration path | tokenless `POST /api/v1/customers` | security | `security.RegistrationSecurityPostureTest` | `registrationPostIsAcceptedWithoutACsrfToken` | status not `403` | RED |
-| SEC-1 / SC-4 deny-by-default elsewhere (F-3: `401` entry point) | unauthenticated `GET /api/v1/customers/1` | security | `security.RegistrationSecurityPostureTest` | `protectedRouteReturns401WhenUnauthenticated` | `401` (tripwire: fails on a form-login `302` → `SECURITY_REVIEW` arbitrates R-2) | GREEN (guard) |
-| SC-6 / SEC-9 H2 console never exposed | `GET /h2-console` | security | `security.RegistrationSecurityPostureTest` | `h2ConsoleIsNotExposed` | status not `200` | GREEN (guard) |
-| SC-9 / SEC-6 no value echo in a validation message | policy-failing password with a distinctive value | web | `registration.CustomerRegistrationApiTest` | `passwordValidationMessageDoesNotEchoTheSubmittedValue` | no `message` contains the submitted string | RED |
-| SC-9 / SEC-6 error message leaks no internals | malformed JSON | web | `registration.CustomerRegistrationApiTest` | `errorBodyNeverLeaksInternals` | `message` has no `Exception` / package name / `jdbc:h2` / SQL keyword | RED |
-| SEC-5 role + enabled columns non-null | schema | `persistence.CustomerSchemaTest` | `roleColumnIsNotNull`, `enabledColumnIsBooleanNotNull` | both `NOT NULL`; `enabled` is `BOOLEAN` | RED |
-
-## 4. Persistence / NFR-4 / BR-007
-
-| Requirement | Scenario | Level | Test class | Test method | Expected | Status |
-|---|---|---|---|---|---|---|
-| NFR-4 surrogate `Long id` | `id` column | persistence | `persistence.CustomerSchemaTest` | `idColumnIsBigintNotNull` | `BIGINT`, `NOT NULL` | RED |
-| BR-007 / PC-6 UTC audit columns | `created_at` / `updated_at` | persistence | `persistence.CustomerSchemaTest` | `auditTimestampColumnsAreTimeZoneAwareAndNotNull` | both `TIMESTAMP WITH TIME ZONE`, `NOT NULL` | RED |
-| PC-6 `created_at` not updatable; auditing writes a UTC offset; `EnumType.STRING` round-trip; entity ↔ `schema.sql` agree under `ddl-auto=validate` (R-1 / PD-6) | `@DataJpaTest` persistence slice | persistence | `persistence.CustomerPersistenceTest` (plan C-T2) | _(methods named by IMPLEMENTATION)_ | `created_at` unchanged after an update; offset is UTC; `role` persists as the name; context starts clean | DEFERRED → IMPLEMENTATION |
-
-## 5. Regression
-
-| Scenario | Test class | Test method | Expected | Status |
-|---|---|---|---|---|
-| Context still boots with Security + JPA active | `CustomerPortalApplicationTests` | `contextLoads` | passes | GREEN (guard) |
-
-## 6. Coverage check
-
-Every mandatory Acceptance Criterion (AC-001..AC-007) has **at least one
-executable test that runs at `TEST_WRITING`** (web or persistence level). No
-mandatory AC depends solely on a `DEFERRED` row. The `DEFERRED` rows add
-depth (unit-level policy matrix, service internals, JPA-auditing invariants);
-each is owned by a named plan skeleton (C-T1 / C-T2 / C-T3) and gated by plan
-execution steps 4 and 6.
+**Status legend:** "RED (compile)" = the whole `CustomerPortal.Tests`
+project fails to build because this test method's file references a
+not-yet-existing production type; expected and correct for a from-scratch
+Story (see `test_generation_report` v2 §5). "RED (endpoint absent)" =
+the test file itself compiles, but cannot pass yet since
+`POST /api/v1/customers` doesn't exist (currently would resolve as `404`
+once the build succeeds enough to run it — not yet directly observed since
+the project doesn't build as a whole). "Currently FAILING for the intended
+reason" = the one test that both compiles standalone AND could theoretically
+run today if isolated from the rest of the project, and would fail exactly
+because `Program.cs` has no SC-4 fallback policy yet, which is the correct
+red-phase signal for that specific test.

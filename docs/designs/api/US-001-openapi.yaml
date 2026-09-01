@@ -6,14 +6,14 @@ info:
     HTTP contract for US-001 Customer Registration. Adds a single public
     endpoint that lets an unauthenticated client self-register a Customer
     account. Authoritative artifact paths: docs/workflow/artifact-paths.yaml.
-  version: "1"
+  version: "2"
 
 x-story: US-001
 x-source-specification: docs/specifications/US-001-spec.md
-x-source-specification-version: 1
+x-source-specification-version: 2
 x-produced-by: openapi-designer
 x-open-decisions:
-  OD-001: "A — Jakarta @Email semantics + email maxLength 254"
+  OD-001: "A — standard email-address shape (FluentValidation rule) + email maxLength 254"
   OD-002: "B — POST /api/v1/customers is exempt from CSRF (recorded architecture decision); CSRF remains enabled for all other endpoints"
   OD-003: "A — duplicate email returns 409 Conflict with an explicit message"
   OD-004: "A — 201 response body = id, email, role, createdAt"
@@ -21,8 +21,10 @@ x-open-decisions:
   OD-006: "A — email normalized to lowercase in the service; plain UNIQUE constraint (DB_DESIGN concern, no contract impact)"
 x-request-shape-policy: >
   Unknown or extra JSON properties in the request body are rejected with 400
-  (request-shape failure); they are never silently ignored. Resolves
-  spec-review finding F-2 / Specification §6.3.
+  (request-shape failure); they are never silently ignored. Enforced at the
+  JSON-deserialization layer (System.Text.Json UnmappedMemberHandling.Disallow),
+  not by FluentValidation. Resolves spec-review finding F-2 / Specification
+  §6.3.
 
 servers:
   - url: /api/v1
@@ -90,7 +92,7 @@ paths:
                     createdAt: "2026-08-31T08:15:30Z"
         '400':
           description: >
-            Request-shape or bean-validation failure, or malformed JSON, or an
+            Request-shape or FluentValidation failure, or malformed JSON, or an
             unknown/extra JSON property. No account is created. AC-003, AC-006,
             AC-007-adjacent. fieldErrors is present for field-level validation
             failures.
@@ -202,9 +204,10 @@ components:
           maxLength: 254
           format: email
           description: >
-            Customer email. Validated with Jakarta @Email semantics (non-empty
-            local part, '@', domain) and a maximum stored length of 254
-            characters (OD-001:A). Uniqueness is enforced case-insensitively
+            Customer email. Validated with a FluentValidation rule requiring a
+            standard email-address shape (non-empty local part, '@', domain)
+            and a maximum stored length of 254 characters (OD-001:A). Uniqueness
+            is enforced case-insensitively
             (business-rules.md BR-001/BR-002); the service normalizes the value
             to lowercase before persistence (OD-006:A).
           example: "customer@example.com"
@@ -254,15 +257,19 @@ components:
         createdAt:
           type: string
           format: date-time
-          description: UTC creation timestamp (ISO-8601), set via JPA auditing.
+          description: >
+            UTC creation timestamp (ISO-8601), set via the AppDbContext
+            SaveChangesAsync audit-timestamp override (persistence-conventions.md
+            PC-6).
           example: "2026-08-31T08:15:30Z"
 
     ErrorResponse:
       type: object
       description: >
         Standard error body from api-conventions.md AC-6, produced by the single
-        @RestControllerAdvice in the exception package (AC-9). `message` is
-        safe to display and never leaks internals (SC-9).
+        GlobalExceptionHandler in the Exceptions namespace (AC-9,
+        architecture.md AD-6). `message` is safe to display and never leaks
+        internals (SC-9).
       required:
         - timestamp
         - status
@@ -288,7 +295,7 @@ components:
           example: "/api/v1/customers"
         fieldErrors:
           type: array
-          description: Present only for field-level bean-validation failures.
+          description: Present only for field-level FluentValidation failures.
           items:
             $ref: '#/components/schemas/FieldError'
 

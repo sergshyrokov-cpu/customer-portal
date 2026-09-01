@@ -16,7 +16,10 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
     {
         var (status, error) = exception switch
         {
-            _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
+            DuplicateEmailException => (StatusCodes.Status409Conflict, "Conflict"),
+            InvalidPasswordException => (StatusCodes.Status400BadRequest, "Bad Request"),
+            UnsupportedMediaTypeException => (StatusCodes.Status415UnsupportedMediaType, "Unsupported Media Type"),
+            _ => (StatusCodes.Status500InternalServerError, "Internal Server Error"),
         };
 
         if (status == StatusCodes.Status500InternalServerError)

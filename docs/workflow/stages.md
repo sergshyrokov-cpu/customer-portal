@@ -28,7 +28,7 @@ Human gates stop the workflow until a person records a decision with
 | 11 | `PLAN_REVIEW` | skill | `plan-reviewer` | `plan_review` |
 | 12 | `HUMAN_PLAN_APPROVAL` | human gate | human | — |
 | 13 | `TEST_WRITING` | skill | `test-writer` | `test_strategy`, `ac_test_matrix`, `test_generation_report` |
-| 14 | `IMPLEMENTATION` | skill | `springboot-implementor` | `implementation_report` |
+| 14 | `IMPLEMENTATION` | skill | `aspnet-implementor` | `implementation_report` |
 | 15 | `IMPLEMENTATION_VERIFICATION` | skill | `implementation-verifier` | `implementation_verification` |
 | 16 | `SECURITY_REVIEW` | skill | `security-reviewer` | `security_review` |
 | 17 | `RECONCILIATION` | skill | `reconciliation-reviewer` | `reconciliation`, `traceability` |

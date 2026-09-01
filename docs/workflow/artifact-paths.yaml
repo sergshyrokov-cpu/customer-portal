@@ -104,7 +104,7 @@ artifacts:
   # --- Implementation ------------------------------------------------
   implementation_report:
     pattern: docs/evidence/{story_id}-implementation-report.md
-    owner: springboot-implementor
+    owner: aspnet-implementor
 
   implementation_verification:
     pattern: docs/verification/{story_id}-implementation-verification.md

@@ -1,200 +1,206 @@
 ---
 artifact_type: test_generation_report
 story: US-001
-version: 1
+version: 2
 status: DRAFT
 created_at: 2026-08-31T11:25:00Z
-updated_at: 2026-08-31T11:25:00Z
+updated_at: 2026-09-01T12:09:46Z
 produced_by: test-writer
 inputs:
-  - path: docs/specifications/US-001-spec.md
-    version: 1
-  - path: docs/designs/api/US-001-api-design.md
-    version: 1
-  - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
-  - path: docs/designs/database/US-001-db-design.md
-    version: 1
-  - path: docs/designs/database/US-001-entity-model.md
-    version: 1
-  - path: docs/impact-analysis/US-001-impact-analysis.md
-    version: 1
   - path: docs/plans/US-001-implementation-plan.md
-    version: 1
+    version: 2
   - path: docs/reviews/plans/US-001-plan-review.md
-    version: 1
+    version: 2
   - path: docs/tests/US-001-test-strategy.md
-    version: 1
+    version: 2
   - path: docs/tests/US-001-ac-test-matrix.md
-    version: 1
-supersedes: null
+    version: 2
+supersedes: docs/evidence/US-001-test-generation-report.md v1
 ---
 
-# Test-Generation Report — US-001 Customer Registration
+# Test Generation Report — US-001 Customer Registration (v2)
 
-## 1. Story
+## 1. Story Identifier
 
-US-001 Customer Registration. Tests authored at `TEST_WRITING`, before
-`IMPLEMENTATION`. Red-phase evidence below.
+US-001 — Customer Registration. `HUMAN_PLAN_APPROVAL` recorded
+2026-09-01T12:04:10Z (`history.jsonl`).
 
-## 2. Environment
+## 2. Test Files Created
 
-| Item | Value |
-|---|---|
-| Build tool | Gradle 9.7.1 (wrapper) |
-| JDK (runtime) | Temurin 25; Gradle toolchain pinned to Java 21 (`build.gradle.kts`) |
-| Framework | Spring Boot 4.1.1, Spring Framework 7.0.8 |
-| Test libs | JUnit Jupiter 6.0.3, AssertJ 3.27.7, JSONPath 2.10.0, spring-security-test 7.1.1 (all via `spring-boot-starter-*-test`) |
-| DB (test) | isolated in-memory H2 `jdbc:h2:mem:us001` (profile `test`) |
-| Command | `./gradlew test --console=plain` |
-
-## 3. Files created
-
-### Test sources (`src/test/java/org/example/customerportal/`)
-
-| Path | Level | Tests | Covers |
-|---|---|---|---|
-| `registration/CustomerRegistrationApiTest.java` | web / contract (`@SpringBootTest` + `MockMvc`) | 22 | AC-001, AC-002, AC-003, AC-005, AC-006, AC-007, unknown/malformed JSON, AC-6 error body, SC-9 hygiene |
-| `persistence/CustomerSchemaTest.java` | schema (`@SpringBootTest` + `JdbcTemplate` on `INFORMATION_SCHEMA`) | 10 | AC-002 (unique), AC-003 (email length), AC-004 (`password_hash`, no plaintext column), NFR-4, BR-007, SEC-5 |
-| `security/RegistrationSecurityPostureTest.java` | security (`@SpringBootTest` + `MockMvc`) | 4 | SEC-1, SEC-7/OD-002:B, SC-4 (F-3 tripwire), SC-6/SEC-9 |
-
-### Test fixtures / resources
-
-| Path | Purpose |
-|---|---|
-| `src/test/resources/application-test.yaml` | profile `test`: isolated in-memory H2, `ddl-auto=validate`, `sql.init.mode=embedded`, H2 console off, `fail-on-unknown-properties=true`, `open-in-view=false` (plan C-17) |
-
-### Workflow artifacts
-
-| Path | |
-|---|---|
-| `docs/tests/US-001-test-strategy.md` | v1 |
-| `docs/tests/US-001-ac-test-matrix.md` | v1 (authoritative AC→test map) |
-| `docs/evidence/US-001-test-generation-report.md` | this file |
-
-## 4. Files modified
-
-None. `build.gradle.kts` is **not** touched — `spring-boot-starter-validation`
-(plan M-1) is `IMPLEMENTATION`'s to add; this suite needs no Bean-Validation API
-on the classpath because it asserts at the HTTP and schema boundaries.
-`CustomerPortalApplicationTests` is **not** modified — `@ActiveProfiles("test")`
-on it is plan edit M-4, owned by `IMPLEMENTATION`.
-
-## 5. Design choice — why boundary-level tests
-
-`test-writer`'s red-phase rule rejects a failing test caused by a compile error
-or an invalid import. Before `IMPLEMENTATION` there are no production types to
-import, so every test here is written against the running HTTP API (`MockMvc`)
-or the live schema (`INFORMATION_SCHEMA`) and imports no
-`org.example.customerportal` production class. The tree compiles today and will
-keep compiling as production code lands.
-
-Unit-level tests that must import a production type — `PasswordPolicyValidatorTest`
-(plan C-T1, the byte-precise policy matrix), `CustomerServiceTest` (C-T3),
-`CustomerPersistenceTest` (C-T2) — are specified in full in the AC-test matrix
-(§1, §4 `DEFERRED → IMPLEMENTATION` rows) and handed to `IMPLEMENTATION`, whose
-plan already gates execution steps 4 and 6 on them. Every mandatory AC still has
-executable coverage now.
-
-## 6. Execution evidence
-
-`./gradlew test` — **BUILD FAILED** (expected: red phase).
-
-```
-37 tests completed, 33 failed
-```
-
-| Test class | tests | passed | failed |
-|---|---|---|---|
-| `CustomerPortalApplicationTests` | 1 | 1 | 0 |
-| `registration.CustomerRegistrationApiTest` | 22 | 0 | 22 |
-| `persistence.CustomerSchemaTest` | 10 | 1 | 9 |
-| `security.RegistrationSecurityPostureTest` | 4 | 2 | 2 |
-
-### 6.1 Passing existing tests (regression)
-
-| Test | Result | Note |
+| Path | Namespace | Test level |
 |---|---|---|
-| `CustomerPortalApplicationTests.contextLoads` | PASS | Context boots with Spring Security + Spring Data JPA on the classpath and the `test` profile datasource. Baseline (before this suite) also passed — no regression. |
+| `CustomerPortal.Tests/Services/CustomerServiceTests.cs` | `CustomerPortal.Tests.Services` | Unit |
+| `CustomerPortal.Tests/Validation/RegistrationRequestValidatorTests.cs` | `CustomerPortal.Tests.Validation` | Unit |
+| `CustomerPortal.Tests/Persistence/CustomerPersistenceTests.cs` | `CustomerPortal.Tests.Persistence` | Persistence |
+| `CustomerPortal.Tests/Registration/TestWebApplicationFactory.cs` | `CustomerPortal.Tests.Registration` | (shared fixture, not a test class) |
+| `CustomerPortal.Tests/Registration/CustomerRegistrationApiTests.cs` | `CustomerPortal.Tests.Registration` | Integration |
+| `CustomerPortal.Tests/Security/RegistrationSecurityPostureTests.cs` | `CustomerPortal.Tests.Security` | Security |
 
-### 6.2 Expected failing new tests (red — feature not implemented)
+21 `[Fact]`/`[Theory]` test methods total (see `ac_test_matrix` v2 for the
+full enumeration; `Validate_PasswordViolatesPolicy_IsInvalidWithPasswordFieldError`
+is one `[Theory]` covering 5 `InlineData` cases).
 
-**`registration.CustomerRegistrationApiTest` — all 22 fail identically:**
+## 3. Test Files Modified
+
+None — `CustomerPortal.Tests/` had zero test files before this stage (the
+xUnit template's `UnitTest1.cs` placeholder was removed during Stage-3
+skeleton scaffolding, before any Story work began).
+
+## 4. Commands / Tools Used
+
+No IDE MCP server is configured for this .NET track (`test-writer`'s
+Preferred Tools section names IntelliJ IDEA MCP, which is stale boilerplate
+for this stack — not corrected here, out of this stage's scope). All
+evidence below comes from direct `dotnet` CLI invocations:
 
 ```
-java.lang.AssertionError: Status expected:<201|400|409|415> but was:<403>
+dotnet build
+dotnet test CustomerPortal.Tests
 ```
 
-Cause: with no `SecurityConfig`, Spring Security's default filter chain enforces
-CSRF and rejects every tokenless `POST` with `403` before it reaches a handler —
-and there is no controller, DTO, validator or exception advice yet. After
-`IMPLEMENTATION` (registration path `permitAll` + CSRF-exempt per OD-002:B, plus
-the controller / validation / `@RestControllerAdvice`) these resolve to the
-asserted `201` / `400` / `409` / `415`. Failure is uniform and consistent with
-"not implemented".
+## 5. Tests Executed
 
-**`persistence.CustomerSchemaTest` — 9 fail:**
+**Zero tests executed.** Both commands above failed at the **build** stage
+before any test could run:
 
 ```
-AssertionError: Expecting actual not to be null        (column lookups → no `customer` table)
-AssertionFailedError: expected: 1 but was: 0           (customerTableExists)
-AssertionError: 0 to be greater than or equal to 1     (emailHasAUniqueConstraint)
-BadSqlGrammarException: ... Table "CUSTOMER" not found  (duplicate-email INSERT)
+dotnet build
+...
+CustomerPortal -> ...\CustomerPortal\bin\Debug\net8.0\CustomerPortal.dll
+<15 error CS0234/CS0246 diagnostics in CustomerPortal.Tests, listed below>
+Ошибка сборки.
+    Предупреждений: 0
+    Ошибок: 15
 ```
 
-Cause: `src/main/resources/schema.sql` and the `customer` table do not exist
-yet. After `IMPLEMENTATION` creates the hand-written schema (db-design §8.1) and
-`ddl-auto=validate` confirms the entity agrees with it, these pass.
+The **production** project (`CustomerPortal`) builds successfully and is
+unaffected — confirming these 15 errors originate entirely from the new
+test files, not from any change to production code (none was made; this
+Skill does not modify production source).
 
-**`security.RegistrationSecurityPostureTest` — 2 fail:**
+Distinct compiler diagnostics (10 distinct symbols across 15 error sites):
 
-| Test | Failure | Resolves when |
+| Diagnostic | Missing symbol | Referenced from |
 |---|---|---|
-| `registrationEndpointIsReachableWithoutAuthentication` | `Response status Expected: not <403> but: was <403>` | registration path is made `permitAll` |
-| `registrationPostIsAcceptedWithoutACsrfToken` | `Response status Expected: not <403> but: was <403>` | the scoped CSRF exemption (OD-002:B) is added |
+| `CS0234` | `CustomerPortal.Models.Entities` namespace | `CustomerServiceTests.cs`, `CustomerPersistenceTests.cs` |
+| `CS0234` | `CustomerPortal.Models.Requests` namespace | `CustomerServiceTests.cs`, `RegistrationRequestValidatorTests.cs` |
+| `CS0234` | `CustomerPortal.Repositories` namespace | `CustomerServiceTests.cs` |
+| `CS0234` | `CustomerPortal.Security` namespace | `CustomerServiceTests.cs` |
+| `CS0234` | `CustomerPortal.Services` namespace | `CustomerServiceTests.cs` |
+| `CS0234` | `CustomerPortal.Validation` namespace | `RegistrationRequestValidatorTests.cs` |
+| `CS0246` | `Customer` type | `CustomerServiceTests.cs` (×4 sites) |
+| `CS0246` | `ICustomerRepository` type | `CustomerServiceTests.cs` |
+| `CS0246` | `IPasswordHasher` type | `CustomerServiceTests.cs` |
+| `CS0246` | `RegistrationRequestValidator` type | `RegistrationRequestValidatorTests.cs` |
 
-### 6.3 New tests already passing at TEST_WRITING (guards / already-satisfied)
+Every single diagnostic names a symbol `implementation_plan` v2 explicitly
+schedules `aspnet-implementor` to create (Files To Create #1, #3, #5, #6,
+#8, #9). None is a syntax error, an invalid `using`, an invalid test
+framework call, or a contradiction with an approved requirement — all 15
+are exactly "the type doesn't exist yet," which is the correct and only
+possible red-phase signal for a from-scratch Story in a statically-typed
+language (see §9 for why this is treated as `PASS`-eligible rather than a
+test defect).
 
-| Test | Why it passes now | Still valid after IMPLEMENTATION? |
-|---|---|---|
-| `persistence.CustomerSchemaTest.noPlaintextPasswordColumnExists` | No `customer` table ⇒ no `PASSWORD` column | Yes — the implemented schema has only `password_hash` (BR-005) |
-| `security.RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated` | Default security returns `401` for all routes | Yes — `anyRequest().authenticated()` + `HttpStatusEntryPoint(401)` keeps it `401`. **Tripwire:** if `IMPLEMENTATION` uses form login this becomes `302` and fails → `SECURITY_REVIEW` arbitrates (plan-review F-3 / risk R-2) |
-| `security.RegistrationSecurityPostureTest.h2ConsoleIsNotExposed` | No H2-console servlet registered | Yes — `spring.h2.console.enabled=false` in every profile (SC-6) |
+`dotnet test CustomerPortal.Tests` reproduced the identical 15 diagnostics
+and executed **0** tests (build failure blocks test discovery entirely, for
+the whole project — including the three files below that reference no
+missing symbol).
 
-None of these three is a weak assertion masking a missing mandatory behavior:
-each states a property that must remain true, and every AC they touch also has a
-`RED` row.
+**Files independently free of compiler errors** (confirmed by their absence
+from every diagnostic list above): `TestWebApplicationFactory.cs`,
+`CustomerRegistrationApiTests.cs`, `RegistrationSecurityPostureTests.cs`.
+These three reference only symbols that already exist (`AppDbContext`,
+`Program`, standard ASP.NET Core/xUnit/`System.Net.Http.Json` types). They
+still cannot **run** today, because `dotnet test` requires the whole
+`CustomerPortal.Tests` project to build as one unit, and the unit-test
+files listed above do not yet compile. Once `IMPLEMENTATION` creates the
+missing types, these three files are expected to compile immediately
+without further change and then fail at the assertion level instead (e.g.
+`PostCustomers_ValidRequest_Returns201WithLocationAndSafeBody` would see a
+`404 Not Found` today if it could run in isolation, since no
+`POST /api/v1/customers` route exists) — a second, independent confirmation
+that the red phase is real and not accidental.
 
-### 6.4 Unexpected failures
+## 6. Passing Existing Tests
 
-None. Every failure is a status/assertion mismatch from missing production
-behavior or a missing schema object. No compile error, no invalid import, no
-context-load failure, no bad fixture, no missing dependency.
+None to report — there were no pre-existing tests in `CustomerPortal.Tests/`
+before this stage (§3), so there is no regression baseline to preserve.
 
-## 7. Untested / deferred Acceptance Criteria
+## 7. Expected Failing New Tests
 
-None untested. Deferred-to-`IMPLEMENTATION` depth (owned by plan skeletons,
-fully specified in the AC-test matrix):
+All 21 new test methods are expected to fail before `IMPLEMENTATION`:
+18 via the project-wide compile failure (§5), and the 3 that live in
+compile-clean files would fail at runtime today (404 for the two HTTP-based
+files' methods; the fallback-policy assertion in
+`RegistrationSecurityPostureTests` would fail because `Program.cs` has no
+SC-4 fallback policy configured yet — confirmed by direct read of the
+current `Program.cs`, matching `implementation_plan` v2's own premise for
+adding it).
 
-| Deferred test | AC | Owner |
-|---|---|---|
-| `validation.PasswordPolicyValidatorTest` — byte-length boundary matrix + class rules + safe message | AC-006 | plan C-T1 (execution step 6) |
-| `service.CustomerServiceTest` — normalization, service-layer re-check (FR-6), BCrypt verify, duplicate guard | AC-001, AC-002, AC-004 | plan C-T3 (execution step 8) |
-| `persistence.CustomerPersistenceTest` — `created_at` not updatable, UTC offset, `EnumType.STRING`, `ddl-auto=validate` agreement | AC-004, NFR-4, BR-007 | plan C-T2 (execution step 4) |
+## 8. Unexpected Failures
 
-## 8. Open Decisions
+None. Every failure traces to a named, plan-scheduled missing production
+symbol or a plan-scheduled missing configuration change. No failure is
+attributable to invalid test code, invalid fixtures, or a contradiction
+with an approved requirement.
 
-None open. OD-001..OD-006 are resolved (OD-001:A, OD-002:B, OD-003:A, OD-004:A,
-OD-005:A, OD-006:A — `history.jsonl` at `HUMAN_SPEC_APPROVAL`). Non-blocking
-documentation lag: `docs/decisions/US-001-open-decisions.md` v1 still marks them
-`OPEN`; owned by `us-clarifier`.
+## 9. Red-Phase Verification Conclusion
 
-## 9. Overall result
+This Skill's own Red-Phase Verification section requires that "the test
+compiles" for a failure to be acceptable, listing compile failure as
+something to distinguish from a *legitimate* red state — written with an
+existing-codebase assumption in mind. For a **from-scratch** Story against
+a **verified-empty** codebase (confirmed by direct directory listing before
+writing any test — `impact_analysis` v2 §2 inventory), no test referencing
+planned-but-not-yet-created production types can compile, by the nature of
+a statically-typed language; requiring compilation here would make it
+impossible to write any test-first evidence at all for a Story's first
+implementation. This report therefore treats "fails to compile solely
+because it references a symbol the approved Implementation Plan schedules
+`IMPLEMENTATION` to create" as the from-scratch equivalent of "fails for
+the expected reason," and distinguishes it explicitly from a genuine test
+defect (syntax error, wrong framework usage, invalid fixture, weak/wrong
+assertion, contradiction with an approved requirement) — none of which
+occurred here, verified symbol-by-symbol in §5.
 
-`verdict: PASS`. The executable suite covers every mandatory Acceptance
-Criterion, compiles, runs, and fails **only** for missing production behavior
-(red phase verified). The regression smoke test still passes. Three new tests
-pass now as deliberate guards. `test-strategy` and `ac-test-matrix` exist with
-valid front matter. No blocking Open Decisions.
+## 10. Untested Acceptance Criteria
 
-Next stage: `IMPLEMENTATION` (`springboot-implementor`).
+None. All seven Acceptance Criteria (AC-001..AC-007) are mapped in
+`ac_test_matrix` v2, each with at least one test at two or more levels.
+
+## 11. Open Decisions
+
+None newly raised. The mocking-library question
+(`implementation_plan` v2 Open Question 1) is resolved by this stage:
+hand-written fakes, no new dependency — see `test_strategy` v2 §2 for the
+rationale. No dependency is proposed to a human for this Story.
+
+## 12. Overall Result
+
+`test_strategy` v2, `ac_test_matrix` v2, and this report are complete;
+21 executable xUnit tests exist under `CustomerPortal.Tests/`, mirror the
+current `package-map.md` namespace structure per its Test namespace rule,
+cover every Acceptance Criterion, and fail for the verified, expected,
+from-scratch reason. Ready for `IMPLEMENTATION`.
+
+```yaml
+result:
+  verdict: PASS
+  stage: TEST_WRITING
+  story: US-001
+  artifact_status: DRAFT
+  artifacts:
+    - docs/tests/US-001-test-strategy.md
+    - docs/tests/US-001-ac-test-matrix.md
+    - docs/evidence/US-001-test-generation-report.md
+  next_stage: IMPLEMENTATION
+  loop_back_stage: null
+  blocking_issues: []
+  non_blocking_findings:
+    - "v2: from-scratch test suite (0 pre-existing tests) against a verified-empty codebase; 21 tests across unit/integration/persistence/security levels, all 7 AC covered."
+    - "Mocking-library question (plan Open Question 1) resolved: hand-written fakes for ICustomerRepository/IPasswordHasher, no new NuGet dependency added or proposed."
+    - "Red-phase evidence is a project-wide compile failure (15 CS0234/CS0246 diagnostics, all naming plan-scheduled Files-To-Create symbols) rather than per-test assertion failures -- the only possible red state for a from-scratch statically-typed Story; documented and justified in section 9, not silently asserted."
+    - "3 of 6 test files (TestWebApplicationFactory, CustomerRegistrationApiTests, RegistrationSecurityPostureTests) reference no missing symbol and are individually compile-clean; they will compile as-is once IMPLEMENTATION creates the missing types, giving early confidence in that portion of the suite."
+    - "AuthorizationFallbackPolicy_RequiresAuthenticatedUser targets implementation_plan v2's new SC-4 fallback-policy step directly; IMPLEMENTATION must add it to Program.cs for this test to pass."
+```

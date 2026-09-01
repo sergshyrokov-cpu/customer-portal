@@ -6,7 +6,7 @@ obj/
 *.suo
 
 ### Generated SQLite database files (persistence-conventions.md PC-1 / SC-7) ###
-/data/
+**/App_Data/
 *.db
 *.db-shm
 *.db-wal

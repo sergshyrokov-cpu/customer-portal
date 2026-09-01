@@ -2,48 +2,34 @@
 artifact_type: security_review
 story: US-001
 version: 1
-status: APPROVED
-created_at: 2026-08-31T12:34:36Z
-updated_at: 2026-08-31T12:34:36Z
+status: DRAFT
+created_at: 2026-09-01T13:10:37Z
+updated_at: 2026-09-01T13:10:37Z
 produced_by: security-reviewer
 inputs:
-  - path: docs/stories/US-001-register-customer.md
-    version: null
-  - path: docs/specifications/US-001-spec.md
-    version: 1
-  - path: docs/reviews/specifications/US-001-spec-review.md
-    version: 1
-  - path: docs/impact-analysis/US-001-impact-analysis.md
-    version: 1
-  - path: docs/plans/US-001-implementation-plan.md
-    version: 1
-  - path: docs/reviews/plans/US-001-plan-review.md
-    version: 1
   - path: docs/evidence/US-001-implementation-report.md
-    version: 1
+    version: 4
   - path: docs/verification/US-001-implementation-verification.md
-    version: 1
+    version: 2
+  - path: docs/specifications/US-001-spec.md
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
-  - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
+    version: 2
   - path: docs/designs/database/US-001-db-design.md
-    version: 1
-  - path: docs/designs/database/US-001-entity-model.md
-    version: 1
+    version: 2
   - path: docs/reviews/designs/US-001-design-review.md
-    version: 1
-  - path: docs/tests/US-001-test-strategy.md
-    version: 1
-  - path: docs/tests/US-001-ac-test-matrix.md
-    version: 1
+    version: 2
+  - path: docs/plans/US-001-implementation-plan.md
+    version: 2
+  - path: docs/reviews/plans/US-001-plan-review.md
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
     version: 1
 supersedes: null
 critical_findings: 0
 major_findings: 0
 minor_findings: 4
-informational_findings: 2
+informational_findings: 3
 security_sensitive: true
 runtime_checks: PARTIAL
 semantic_analysis: TEXT_FALLBACK
@@ -53,507 +39,445 @@ semantic_analysis: TEXT_FALLBACK
 
 ## 1. Executive Summary
 
-**Verdict: PASS.** The US-001 registration implementation introduces no Critical
-or Major security risk. Every security requirement in Specification §7 (SEC-1..
-SEC-11) is independently verifiable in code, configuration, and tests, and every
-security-sensitive Open Decision (OD-002 CSRF, OD-003 enumeration, OD-005
-anti-abuse) was resolved by a human at `HUMAN_SPEC_APPROVAL`
-(`history.jsonl` 2026-08-31T07:48:48Z: `OD-001:A OD-002:B OD-003:A OD-004:A
-OD-005:A OD-006:A`).
+**Result: PASS.** Independent adversarial review of the ASP.NET Core/EF
+Core/SQLite implementation of US-001, the first `SECURITY_REVIEW` for this
+Story on the new stack. `implementation_verification` v2 (PASS, 0
+Critical/0 Major/3 Minor) is consumed as current functional evidence, not
+re-derived; this review instead adversarially probes the eight specific
+areas raised for this stage plus the standard checklist.
 
-Principal verified controls: BCrypt hashing with no no-op encoder; plaintext
-password confined to the inbound DTO (never persisted, returned, or logged —
-production code contains no logger at all); deny-by-default authorization with a
-single exact-match public route; the CSRF exemption scoped to that same single
-matcher; H2 console disabled in every profile; `ddl-auto=validate` in every
-profile; generic error bodies with no internal leakage; mass-assignment closed
-(`fail-on-unknown-properties=true`, only `email`/`password` bindable).
+No Critical or Major finding. Password handling (BCrypt via
+`BCrypt.Net-Next`, default work factor, dual-layer policy enforcement),
+credential non-exposure, the SC-4 deny-by-default posture, and the newly
+added content-type-enforcement middleware are all sound. Four Minor
+findings are recorded, three of them genuine "landmines for a future
+Story" rather than exploitable weaknesses in US-001's actual surface
+(cookie-auth's default 302-redirect challenge behavior contradicts SC-3's
+401 requirement but has nothing to challenge yet; `AddAntiforgery()` is
+registered with no enforcement wired anywhere; the email-uniqueness
+check-then-act race produces `500` instead of `409` under concurrent
+duplicate registration, matching the retired Spring Boot track's accepted
+equivalent and OD-005:A). Three Informational observations are recorded,
+including confirmation that no secret, credential, or path-traversal risk
+exists anywhere in this Story's change set.
 
-Findings: 0 Critical, 0 Major, 4 Minor, 2 Informational. None blocks
-progression; none requires a code change for this Story.
-
-**Recommended next action:** advance to `RECONCILIATION`.
+- **Critical / Major:** 0 / 0
+- **Runtime checks:** PARTIAL (live smoke checks performed for the
+  registration flow and content-type enforcement; no protected endpoint
+  exists yet to observe the cookie-auth challenge finding directly)
+- **Recommended next action:** proceed to `RECONCILIATION`.
 
 ## 2. Reviewed Artifacts
 
-| Artifact | Path | Version | Status |
-|---|---|---|---|
-| Story | docs/stories/US-001-register-customer.md | (unversioned) | active |
-| Specification | docs/specifications/US-001-spec.md | 1 | APPROVED |
-| Specification Review | docs/reviews/specifications/US-001-spec-review.md | 1 | APPROVED (PASS) |
-| API Design | docs/designs/api/US-001-api-design.md | 1 | APPROVED |
-| OpenAPI Contract | docs/designs/api/US-001-openapi.yaml | 1 | APPROVED |
-| DB Design | docs/designs/database/US-001-db-design.md | 1 | APPROVED |
-| Entity Model | docs/designs/database/US-001-entity-model.md | 1 | APPROVED |
-| Design Review | docs/reviews/designs/US-001-design-review.md | 1 | APPROVED |
-| Impact Analysis | docs/impact-analysis/US-001-impact-analysis.md | 1 | DRAFT (PASS; no review stage follows) |
-| Implementation Plan | docs/plans/US-001-implementation-plan.md | 1 | APPROVED (+ HUMAN_PLAN_APPROVAL 2026-08-31T11:20:00Z) |
-| Plan Review | docs/reviews/plans/US-001-plan-review.md | 1 | APPROVED |
-| Implementation Report | docs/evidence/US-001-implementation-report.md | 1 | DRAFT |
-| Implementation Verification | docs/verification/US-001-implementation-verification.md | 1 | DRAFT (verdict PASS) |
-| Test Strategy | docs/tests/US-001-test-strategy.md | 1 | DRAFT |
-| AC–Test Matrix | docs/tests/US-001-ac-test-matrix.md | 1 | DRAFT |
-| Open Decisions | docs/decisions/US-001-open-decisions.md | 1 | DRAFT (stale — see F-4) |
-
-Front matter of the three review artifacts was read directly:
-`specification_review` `status: APPROVED`, `design_review` `status: APPROVED`,
-`plan_review` `status: APPROVED`. `history.jsonl` records `SPEC_REVIEW` PASS,
-`DESIGN_REVIEW` PASS, `PLAN_REVIEW` PASS and both human gates
-(`HUMAN_SPEC_APPROVAL` 2026-08-31T07:48:48Z, `HUMAN_PLAN_APPROVAL`
-2026-08-31T11:20:00Z). No consumed input is `SUPERSEDED`. No staleness that
-blocks: the only stale artifact is `open_decisions` v1 (F-4), whose resolved
-values are authoritative in `history.jsonl` and are applied correctly
-throughout the implementation.
-
-`implementation_verification` verdict is **PASS** (precondition satisfied).
+See front matter `inputs` above — all current, none `SUPERSEDED`.
 
 ## 3. Security-Relevant Scope
 
-- **Exposed functionality:** one new endpoint, `POST /api/v1/customers`
-  (public, unauthenticated, `application/json` only).
-- **Protected assets:** customer credentials (plaintext password in transit /
-  request binding, BCrypt hash at rest), customer email (PII), account role and
-  `enabled` state, the H2 database file.
-- **Trust boundaries crossed:** external client → `CustomerController`
-  (`@Valid` binding); controller → `CustomerService` (business rules, policy
-  re-check, hashing); service → `CustomerRepository` → H2; developer environment
-  → repository (secrets / generated DB files).
-- **Affected security components:** `security/SecurityConfig` (new),
-  `validation/{ValidPassword,PasswordPolicyValidator}` (new),
-  `exception/GlobalExceptionHandler` (new), `model/request/RegistrationRequest`
-  (new), `model/dto/{CustomerResponse,ErrorResponse,ApiFieldError}` (new),
-  `application.yaml` (new persistence + Jackson config), `.gitignore` (`/data/`).
+One new public endpoint (`POST /api/v1/customers`), the project's first —
+which also means the project's first exercise of its authentication/
+authorization posture (SC-3, SC-4), password-hashing posture (SC-1, SC-2),
+and API/error-handling conventions (AC-2, AC-6) all at once. Assets:
+customer email (PII, low sensitivity), password (never persisted in
+plaintext), password hash (`password_hash`, BCrypt), account role/enabled
+state. Trust boundaries: external client → `CustomersController`;
+`CustomersController` → `CustomerService`; `CustomerService` →
+`CustomerRepository` → `AppDbContext`/SQLite; developer environment →
+repository (new `.config/dotnet-tools.json`, `App_Data/` path).
 
 ## 4. Environment and Tools
 
-- Spring Boot 4.1.1; Spring Security (session-based stack, form/basic disabled);
-  Hibernate ORM 7.4.5; H2 2.x; Java 21 (Gradle toolchain); Gradle 9.7.1.
-- Active profile under test: `test` (`application-test.yaml`, isolated in-memory
-  H2). Default profile: file-based H2.
-- Review tooling: built-in file inspection, `git`, `grep`. IDEA MCP semantic /
-  build / runtime tools not invoked → `semantic_analysis: TEXT_FALLBACK`,
-  `runtime_checks: PARTIAL`.
-- Build/test evidence is **reused** from `implementation_verification` v1
-  (`./gradlew clean build` BUILD SUCCESSFUL, 62 tests / 0 failures across 7
-  suites, independently reproduced by the verifier). This review did **not**
-  re-run the build and did **not** perform dependency vulnerability scanning
-  (see §22).
-- No secrets encountered or recorded.
+.NET SDK 9.0.314 (targets `net8.0`, runtime 8.0.27). SQLite file-based
+(`./App_Data/customer-portal.db`) for local/dev, isolated in-memory for
+tests. Tools: `Read`/`Grep` for code and configuration inspection, a live
+`dotnet run` session for the targeted runtime checks in §§5–6, `git
+status`/`grep` for repository hygiene (§17). No IDE MCP server configured
+for this .NET track (`semantic_analysis: TEXT_FALLBACK`). No dependency
+vulnerability scanner was run (§14) — not claimed as vulnerability-free.
 
 ## 5. Authentication Review
 
-| Item | Evidence | Result |
-|---|---|---|
-| Story adds no authentication mechanism | US-001 §10 Out of Scope (login is US-002); no `UserDetailsService`, no `formLogin`, no `httpBasic` in `SecurityConfig` | OK |
-| Registration requires no authentication (SEC-1) | `SecurityConfig` `REGISTRATION_ENDPOINT` → `permitAll()`; `RegistrationSecurityPostureTest.registrationEndpointIsReachableWithoutAuthentication` | VERIFIED |
-| Created account is a future auth subject (FR-9) | BCrypt hash verifies against submitted password (`CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash`); `role = CUSTOMER`, `enabled = true` | VERIFIED |
-| Protected routes deny unauthenticated access | `anyRequest().authenticated()`; `HttpStatusEntryPoint(401)`; `RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated` (401, not a 302 redirect) | VERIFIED |
+**SC-4 fallback policy + `[AllowAnonymous]` — confirmed sound, no bypass
+found.** `[AllowAnonymous]` on `CustomersController.Register` is the
+framework-standard override that always wins over any authorization
+requirement including a `FallbackPolicy`, independent of routing
+specifics — confirmed by reading both the policy registration (`Program.cs`)
+and the action attribute directly; this is not a text-search inference,
+it's how ASP.NET Core's authorization middleware is documented and
+implemented to resolve `[AllowAnonymous]` vs. policy requirements. No
+HTTP-verb-tunneling middleware (`UseHttpMethodOverride` or equivalent) is
+registered anywhere — confirmed by `grep`, zero matches — so no
+verb-tunneling bypass vector exists. Cookie authentication
+(`AddAuthentication(...).AddCookie()`) issues no cookie yet (no login flow
+exists in this Story's scope), so an unauthenticated request simply has no
+credential to present; consistent with the design.
 
-No findings.
+**Finding (F-1, Minor):** `AddCookie()` is registered with no
+configuration overrides, meaning it retains ASP.NET Core's default
+challenge behavior — a `302` redirect to a login path (`/Account/Login`
+default) rather than a `401` status. `security-conventions.md` SC-3
+explicitly requires "Failed authentication returns `401` with the standard
+error body." This cannot be observed today because **no protected
+endpoint exists yet** in the running application — `Register` is correctly
+`[AllowAnonymous]`, and nothing else is routed. It is nonetheless a real,
+already-committed configuration gap against an approved requirement, not
+a hypothetical one: the moment a future Story (e.g. US-002 login, or any
+authenticated endpoint) is added without separately fixing this, an
+unauthenticated request to it will 302-redirect instead of returning the
+required `401`. Recommend configuring
+`options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode =
+401; return Task.CompletedTask; }` (or equivalent) before or alongside the
+next Story that introduces a protected endpoint.
 
 ## 6. Authorization Review
 
-| Item | Evidence | Result |
-|---|---|---|
-| Deny-by-default (SC-4, SEC-1) | `authorizeHttpRequests` = one `permitAll` matcher + `anyRequest().authenticated()` | VERIFIED |
-| Public scope is minimal | `REGISTRATION_ENDPOINT` matches **exactly** `POST` + URI `/api/v1/customers`; any other method/path on the same URI falls through to `authenticated()` | VERIFIED |
-| No role/ownership operation introduced | US-001 adds no read/update/delete endpoint; no `@PreAuthorize`; nothing to bypass | N/A (in scope) |
-| Service cannot be reached around authorization | `CustomerService.register` is only called by `CustomerController.register`; controller path is the `permitAll` route by design | VERIFIED (text/import analysis) |
-
-No findings. (Confidence: high from imports/matchers; PSI call-graph not
-cross-checked — see §22.)
+Single operation, public by design (SC-4 lists registration as the
+approved exception). No role or ownership check applies to this Story
+(none required — `x-authorization: none` per api-design v2, matches
+Specification §7 SEC-1). Service methods are not independently callable
+from outside the DI-wired `CustomersController` → `CustomerService` chain
+(no other entry point exists) — confirmed via `grep` for other
+`ICustomerService` consumers, none found. No insecure-direct-object-access
+risk: the one operation is a `POST` create with no identifier-based
+lookup.
 
 ## 7. Password and Credential Handling
 
-| Requirement | Evidence | Result |
-|---|---|---|
-| Plaintext only on inbound DTO (SEC-3, SC-1) | `RegistrationRequest.password`; never copied to `Customer`, `CustomerResponse`, or any exception; `CustomerService` passes it only to `passwordEncoder.encode` and `PasswordPolicyValidator.isCompliant` | VERIFIED |
-| Never persisted (AC-004, FR-7) | `schema.sql` has no plaintext column; `Customer` has only `passwordHash`; `CustomerSchemaTest.noPlaintextPasswordColumnExists` | VERIFIED |
-| Never logged (SEC-3) | `grep -rniE "logger|log\.|System\.out|println|slf4j" src/main` → **no matches**; no `logging.*`/`show-sql` in either properties file; `Customer.toString()` hand-excludes `passwordHash` | VERIFIED (with F-1) |
-| Never returned (AC-005, SEC-4) | `CustomerResponse` = `id, email, role, createdAt` only; `CustomerRegistrationApiTest.successResponseNeverExposesCredentialOrInternalState` asserts `$.password`, `$.passwordHash`, `$.password_hash`, `$.enabled`, `$.updatedAt` all absent | VERIFIED |
-| BCrypt, no no-op encoder (SEC-2, NFR-1) | `SecurityConfig.passwordEncoder()` = `new BCryptPasswordEncoder()` (default strength), bean in `security` package; `CustomerServiceTest` asserts a real `$2[aby]$`-format hash that verifies and `!= raw` | VERIFIED |
-| Policy enforced request-layer **and** service re-check (FR-6, SC-1) | `@ValidPassword` → `PasswordPolicyValidator.isValid` at binding; `CustomerService.register` calls `PasswordPolicyValidator.isCompliant` before `encode`; `CustomerServiceTest.serviceRechecksThePasswordPolicyBeforeHashingOrTouchingTheRepository` | VERIFIED |
-| Policy matches SC-1 exactly | `MIN_BYTES=12`, `MAX_BYTES=72` (UTF-8 bytes — BCrypt input bound, PD-2/R-3), + one upper/lower/digit/special; `PasswordPolicyValidatorTest` (17 cases incl. 11/12/72/73-byte and multi-byte) | VERIFIED |
-| Validation message never echoes the value (SC-9, R-7) | `@ValidPassword` message is the fixed string `"Password does not meet the security policy."`; `InvalidPasswordException` → fixed `"The submitted password does not meet the security policy."`; `PasswordPolicyValidatorTest.defaultMessageNeverEchoesASubmittedValue`, `CustomerRegistrationApiTest.passwordValidationMessageDoesNotEchoTheSubmittedValue` | VERIFIED (R-7 closed) |
-| Test fixtures introduce no real credentials | passwords in tests are synthetic policy strings (`Aa1!aaaaaaaa` etc.); dummy BCrypt literals are obvious placeholders | VERIFIED |
-
-Finding: **F-1** (Minor, PASSWORD_HANDLING / DATA_EXPOSURE) — see §19.
+- Plaintext password: present only on the inbound `RegistrationRequest`
+  record — confirmed no other type or method holds it; `CustomerService`
+  passes it once to `passwordHasher.Hash(...)` and never stores or logs
+  it. **Q3 confirmed:** `BCryptPasswordHasher.Hash` calls
+  `BCrypt.Net.BCrypt.HashPassword(password)` with no explicit work-factor
+  override — `BCrypt.Net-Next`'s documented default work factor is `10`
+  (a real, non-trivial BCrypt cost, not a no-op or weakened stub),
+  matching SC-1's "default work factor" requirement exactly and SC-2's
+  hashing posture. `Verify` (unused by this Story, reserved for the
+  future login flow) is likewise the real library implementation, not a
+  stub.
+- Password hash: stored only in `password_hash` (`TEXT`,
+  `HasMaxLength(60)`); never appears in `CustomerResponse` (the type has
+  no such property at all, not merely an excluded field) or in any log
+  statement — confirmed via `grep` for `Log(` calls in
+  `Services`/`Controllers`/`Security`, zero matches touching request data.
+- Dual-layer policy enforcement (FR-6): request-layer
+  `RegistrationRequestValidator` (FluentValidation, thoroughly tested) and
+  a Service-layer re-check (`CustomerService.IsPolicyCompliant`).
+  **Q4, independently assessed:** because `[ApiController]`'s automatic
+  model-state validation always short-circuits before the action executes
+  when `ModelState.IsValid == false` (confirmed by reading
+  `ConfigureApiBehaviorOptions`'s `InvalidModelStateResponseFactory`
+  wiring in `Program.cs`, and independently by `implementation_verification`
+  v2 §11's runtime confirmation that request validation is genuinely
+  active), the Service-layer re-check's failure branch is **provably**
+  unreachable via the only entry point into `CustomerService`
+  (`CustomersController`) — not merely "probably" unreachable. Concur
+  with `implementation_verification` v2's Minor/test-coverage framing
+  (F-3 there): this is a defense-in-depth code path with zero current
+  exploitability, not a security weakness, because the primary control it
+  backs up cannot itself be bypassed through the application's only entry
+  point. No escalation warranted.
 
 ## 8. Sensitive Data Exposure
 
-| Surface | Review | Result |
-|---|---|---|
-| Response DTO | `CustomerResponse` minimal; no hash, no `enabled`, no `updatedAt` | OK |
-| Entity serialization | `Customer` never on a controller signature (AD-4); not a Jackson type on any endpoint | OK |
-| Exception responses | `ErrorResponse` = `timestamp, status, error, message, path, fieldErrors[]`; `message` is a fixed client-safe string per branch; `fieldErrors[]` carries only `field` + the static constraint message | OK |
-| Logs / debug output | none — no logger in `src/main`; no debug logging config | OK |
-| Implementation report / telemetry | report contains no secret; `docs/hooks/tool-usage.jsonl` is git-ignored | OK |
-| `toString()` of the request record | `RegistrationRequest` is a `record` → generated `toString()` renders `password` | F-1 (Minor) |
+`CustomerResponse` (`Id`, `Email`, `Role`, `CreatedAt`) — no credential
+field exists on the type. `RegistrationRequest` is a `record`, so its
+compiler-generated `ToString()` would render the plaintext password if
+ever logged or interpolated — confirmed no code path does this (`grep`
+found no `ToString()` call, string interpolation, or logging statement
+touching the request object anywhere in `Services`/`Controllers`). Error
+responses (`ErrorResponse`) never include request data — confirmed by
+reading `GlobalExceptionHandler` and the `InvalidModelStateResponseFactory`
+(field-level messages are FluentValidation's own static rule messages,
+independently confirmed non-echoing by
+`RegistrationRequestValidatorTests.Validate_PasswordFailureMessage_NeverEchoesSubmittedValue`,
+which passes). The new `UnsupportedMediaTypeException` message echoes only
+the client-supplied `Content-Type` **header** value (never the request
+body) — see §10 Q2 for the full assessment; not a credential or body-data
+leak.
 
 ## 9. Input Validation
 
-| Item | Evidence | Result |
-|---|---|---|
-| Server-side, no framework-default reliance (NFR-2) | explicit `@NotBlank @Email @Size(max=254)` on `email`; explicit `@ValidPassword` + custom validator on `password` | VERIFIED |
-| Runtime activation | `@Valid @RequestBody` on `CustomerController.register` → `MethodArgumentNotValidException` → `handleValidation` → `400` + `fieldErrors[]`; proven by the real-MVC web tests (`malformedEmailReturns400WithEmailFieldError`, 8 password vectors) | VERIFIED |
-| Length bounds explicit | email `@Size(max=254)` + `VARCHAR(254)`; password 12..72 bytes | VERIFIED |
-| Required fields enforced | `@NotBlank` on both; null/empty password delegated to `@NotBlank`, and the service `isCompliant` gate treats null/empty as non-compliant | VERIFIED |
-| Unknown / extra JSON fields | `spring.jackson.deserialization.fail-on-unknown-properties=true` (both profiles) → `HttpMessageNotReadableException` → `400`; `CustomerRegistrationApiTest.unknownJsonPropertyReturns400` | VERIFIED |
-| Mass assignment (role / enabled injection) | only `email` + `password` are record components; any other property → `400` (above). Role/`enabled` are set server-side in `CustomerService` only | VERIFIED |
-| Malformed JSON | `400` via the same handler; `malformedJsonReturns400` | VERIFIED |
-| Errors reveal no internals | `errorBodyNeverLeaksInternals` | VERIFIED |
-
-No findings.
+Server-side only (FluentValidation + the `System.Text.Json`
+`UnmappedMemberHandling.Disallow` unknown-field rejection), confirmed
+genuinely active at runtime by `implementation_verification` v2's
+integration-test evidence, independently re-confirmed by this review's own
+reading of the `InvalidModelStateResponseFactory` wiring. Length
+constraints explicit (`email` ≤254, `password` 12–72 **bytes** — the
+multi-byte boundary case is explicitly tested). Malformed JSON and
+oversized/wrong-shape input are rejected with `400`, not silently
+accepted. Validation errors do not reveal internal details (static rule
+messages only).
 
 ## 10. API Security
 
-| Item | Evidence | Result |
-|---|---|---|
-| Only the approved endpoint exists | one `@PostMapping` on `/api/v1/customers`; no other controller | VERIFIED |
-| Method + content type constrained | `consumes = APPLICATION_JSON_VALUE`; missing/other `Content-Type` → `415` (`nonJsonContentTypeReturns415`, `missingContentTypeReturns415`) | VERIFIED |
-| Request fields restricted | `{email, password}` only, `additionalProperties:false` enforced at runtime | VERIFIED |
-| Response fields minimized | `CustomerResponse` = OD-004:A field set | VERIFIED |
-| `201` + `Location` | `ResponseEntity.created(location)`; `Location: /api/v1/customers/{id}` | VERIFIED |
-| Error responses match AC-6 shape, no leak | `GlobalExceptionHandler` single advice, one branch per status; `errorBodyHasTheApiConventionShape` | VERIFIED |
-| Auth declaration matches implementation | OpenAPI `security: []` for this path ↔ `permitAll` matcher | VERIFIED |
+**Q1 (SC-4/AllowAnonymous), Q2 (content-type middleware) — both addressed
+below with adversarial framing.**
 
-Finding: **F-2** (Minor, API_SECURITY / documentation) — implemented `400`/`415`
-`message` strings differ verbatim from the OpenAPI *illustrative* `examples`
-(the `409` message matches exactly; all tests assert status + body shape). No
-contract-behavior mismatch. Carried from IMPL_VERIFICATION MF-2 / disclosed D-4.
+- **Q1:** see §5 — sound, no bypass found beyond the F-1 landmine already
+  recorded.
+- **Q2, content-type-enforcement middleware:** read
+  `Program.cs`'s new `app.Use(...)` block directly. It reads only
+  `Request.ContentLength` (a header value, `long?`, no body access) and
+  `Request.ContentType`/`Headers.TransferEncoding` (also headers) — **no
+  request body is read, buffered, or materialized by this check**, so it
+  introduces no memory-amplification or slow-body DoS vector; the check is
+  O(1) regardless of the claimed or actual body size. The thrown
+  exception's message interpolates only the client's own `Content-Type`
+  header string into a JSON field via `WriteAsJsonAsync`
+  (`System.Text.Json`), which JSON-escapes control characters and quotes
+  automatically — no JSON-injection or response-splitting risk (this is a
+  JSON body field, not an HTTP response header, so header-injection is not
+  applicable either). **Confirmed: no DoS vector, no information-disclosure
+  risk beyond reflecting the client's own already-sent header value back
+  to itself** — informational only, not a finding (§21 Informational,
+  I-1).
+- Response fields minimized (§8). Error responses uniform across
+  `400`/`409`/`415`/`500` (independently re-verified by
+  `implementation_verification` v2 §8/§11 — this review did not re-run
+  the live smoke checks a third time, relying on that stage's fresh,
+  independently-reproduced evidence from the same session as authoritative
+  current evidence per this Skill's own guidance to reuse
+  `implementation_verification`'s confirmed results rather than
+  re-deriving them).
 
 ## 11. Persistence Security
 
-| Item | Evidence | Result |
-|---|---|---|
-| No plaintext password column | `schema.sql`; `CustomerSchemaTest.noPlaintextPasswordColumnExists` | VERIFIED |
-| `password_hash VARCHAR(60) NOT NULL` (PC-9) | `schema.sql` + `@Column(length=60, nullable=false)`; `passwordHashColumnIsVarchar60NotNull` | VERIFIED |
-| `email VARCHAR(254) NOT NULL`, `uq_customer_email` UNIQUE | `schema.sql` + entity `@UniqueConstraint`; `emailColumnIsVarchar254NotNull`, `emailHasAUniqueConstraint` | VERIFIED |
-| Case-insensitive uniqueness (BR-001/BR-002, OD-006:A) | `CustomerService.normalizeEmail` (`trim().toLowerCase(ROOT)`) before check and save + plain UNIQUE; `duplicateEmailIsRejectedCaseInsensitivelyWith409` | VERIFIED |
-| Explicit nullability / lengths on every column | entity + `schema.sql` agree; `ddl-auto=validate` boots clean | VERIFIED |
-| `role` constrained | `EnumType.STRING` + `ck_customer_role CHECK (role IN ('CUSTOMER','ADMIN'))` | VERIFIED |
-| Audit timestamps UTC, `created_at` immutable | `JpaAuditingConfig` UTC `DateTimeProvider`; `created_at updatable=false`; `CustomerPersistenceTest` | VERIFIED |
-| Generated DB files git-ignored | `.gitignore` `/data/`; not tracked, not in tree | VERIFIED |
-| `ddl-auto` = `validate` both profiles (SEC-10, SC-8) | `application.yaml`, `application-test.yaml` | VERIFIED |
-| DB path not exposed in responses/logs | no logging; error `message` strings are static | VERIFIED |
+Password never stored in plaintext (no such column/field exists anywhere
+in the entity). `password_hash` explicit length/nullability
+(`TEXT`, `HasMaxLength(60)`, required) — confirmed via
+`CustomerConfiguration.cs` and independently via
+`implementation_verification` v2's runtime EF Core model-metadata test
+evidence. Email uniqueness enforced via `uq_customer_email` (exact-match
+unique index) plus Service-layer lowercase normalization for
+case-insensitivity (OD-006:A) — see §16 Q5 for the concurrency angle.
+Database file location: `App_Data/customer-portal.db`, file-based (not
+silently in-memory for local/dev), excluded from Git by extension-based
+`.gitignore` rules — independently re-confirmed this review (`grep` on
+`.gitignore`, §17). No `Database.EnsureCreated()`/`EnsureDeleted()` used
+outside the isolated test fixtures (confirmed via `grep` — the only
+`EnsureCreated`/`EnsureDeleted` calls, if any, would need to appear
+outside `CustomerPortal.Tests/`; none found in production code). Schema
+change is a single, reviewed, committed EF Core Migration matching
+`db-design` v2 §8.2 exactly (already independently verified twice this
+session by `implementation_verification`).
 
-Finding: **F-3** (Minor, PERSISTENCE / robustness) — `CustomerService.register`
-uses check-then-act (`existsByEmail` → `save`); a concurrent duplicate trips
-`uq_customer_email` as an unmapped `DataIntegrityViolationException` → `500`
-rather than `409`. The `uq_customer_email` constraint still prevents the second
-row, so this is a robustness/response-quality gap, not a data-integrity or
-enumeration defect. No AC/design/test covers concurrency; anti-abuse is
-explicitly out of scope (OD-005:A). Carried from IMPL_VERIFICATION MF-3.
+## 12. SQLite and Application Configuration
 
-## 12. H2 and Application Configuration
-
-| Item | Value / Evidence | Result |
-|---|---|---|
-| H2 console (SC-6, SEC-9) | `spring.h2.console.enabled=false` in `application.yaml` **and** `application-test.yaml`; `RegistrationSecurityPostureTest.h2ConsoleIsNotExposed`; no `/h2-console` permit rule | VERIFIED |
-| H2 mode | file-based default (`jdbc:h2:file:./data/customer-portal;AUTO_SERVER=TRUE`), isolated in-memory for tests | matches DB design §8 |
-| `ddl-auto` | `validate` (both) | VERIFIED |
-| `spring.sql.init.mode` | `always` (default) / `embedded` (test) | matches DB design §8 |
-| Datasource credentials | `username: sa`, `password: ""` (H2 default, local file DB) | F-6 (Informational) |
-| `AUTO_SERVER=TRUE` | present in the **approved** DB design §8 (line 172), plan M-2, and impact analysis — approved configuration | F-5 (Informational) |
-| Unsafe defaults becoming runtime defaults | test-only settings live in `application-test.yaml`; no profile leakage | OK |
-
-Findings: **F-5**, **F-6** (both Informational) — see §19.
+No database browser/admin UI registered or exposed in any profile —
+confirmed via `grep` across `Program.cs` and both `appsettings*.json`
+files, zero matches for any such registration. **Q7, independently
+re-confirmed:** the `App_Data` path is a fixed, hardcoded relative string
+in `appsettings.json` — no user input contributes to it anywhere in the
+codebase, so no path-traversal vector exists; no `UseStaticFiles()` (or
+equivalent) middleware is registered (confirmed via `grep`, zero matches),
+so nothing serves directory listings or raw files from `App_Data/` over
+HTTP even if it wanted to. No secret or connection-string credential is
+committed — SQLite's connection string carries no username/password to
+begin with, and a full `grep` sweep of every changed/new production file
+this session for password-literal/secret/API-key patterns returned zero
+matches (§17). `Persistence:AutoMigrate` is `false` in the base
+`appsettings.json` and only `true` in `appsettings.Development.json` — an
+appropriately scoped default, not a blanket unsafe setting.
 
 ## 13. Logging and Telemetry
 
-- **Application logging:** none added. `grep` over `src/main` finds no logger,
-  `System.out`, or `println`. No `logging.level.*`, `spring.jpa.show-sql`, or
-  Hibernate SQL logging in either properties file. Default Spring MVC logging
-  does not emit request bodies at `INFO`.
-- **Exception logging:** `GlobalExceptionHandler` does not log; it reads only
-  `HttpServletRequest.getRequestURI()` and `BindingResult.getFieldErrors()`
-  (field name + static message), never the bound DTO.
-- **Tool-usage telemetry:** `docs/hooks/tool-usage.jsonl` is git-ignored
-  (`.gitignore`); this Story does not modify hook configuration. Not inspected
-  for payload content (out of Story scope); AGENTS.md states it is metadata-only
-  by policy.
-- No password, hash, token, `Authorization` header, or DB credential can reach
-  any log via US-001 code paths.
-
-No findings. (F-1 is the latent enabler if logging is later added — tracked
-there.)
+`GlobalExceptionHandler.logger.LogError(exception, "Unhandled exception")`
+is the only logging call touching request-adjacent data in the new code,
+and it fires only on the generic `500` branch, logging the `Exception`
+object (never the raw request body, never `RegistrationRequest`) —
+confirmed by direct code reading (§7/§8). No other `Log`/`LogInformation`/
+`LogWarning` call exists anywhere in `Services`/`Controllers`/`Security`
+(confirmed via `grep`, zero matches). `docs/hooks/tool-usage.jsonl`
+(session tool telemetry, outside this Story's change set) was not
+inspected in depth this review — out of this Story's affected-component
+scope; no Story-introduced telemetry path exists to review.
 
 ## 14. Dependencies
 
-| Dependency | Status |
-|---|---|
-| `spring-boot-starter-validation` | **approved** — plan M-1 (needed for `@Valid` / custom constraint) |
-| `spring-boot-starter-security`, `-data-jpa`, `-webmvc`, `h2`, `lombok` | pre-existing, unchanged |
-| Test: `-security-test`, `-data-jpa-test`, `-webmvc-test` | test scope only; not on the runtime classpath |
-
-No unapproved dependency. No dependency pinned to an explicit version in
-`build.gradle.kts` (all managed by the Spring Boot BOM 4.1.1). **Vulnerability
-database scanning was not performed** — no claim is made about known-CVE status
-of the resolved dependency tree (§22).
+No new NuGet package (`.csproj` PackageReference) was added by this
+Story — independently re-confirmed by reading both `.csproj` files this
+review, matching `implementation_verification` v2's finding. **Q8:**
+`.config/dotnet-tools.json` (new this session) declares `dotnet-ef`
+8.0.11 as a **local development tool**, not a package reference in any
+`.csproj` — it is never loaded into the running application process and
+carries zero runtime attack surface for the deployed app. It contains no
+secret (tool name, version, command array only — standard, public NuGet
+tool metadata) and is pinned to an exact version matching the project's EF
+Core package versions (reduces version-drift/confusion risk rather than
+introducing one). No vulnerability-database scan was performed for either
+the application's packages or this dev tool — not claimed as
+vulnerability-free; recommend an approved scanner (e.g. `dotnet list
+package --vulnerable`) if/when organizational policy requires it. This is
+Informational (I-2), not a finding requiring correction.
 
 ## 15. Security Test Coverage
 
-| Security requirement / abuse case | Test(s) | Status |
+| Security property | Test | Status |
 |---|---|---|
-| SEC-2 BCrypt hash before persistence | `CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash` (real encoder, `$2[aby]$` regex, verifies, `!= raw`) | COVERED |
-| AC-004 no plaintext column / stored | `CustomerSchemaTest.noPlaintextPasswordColumnExists`, `.passwordHashColumnIsVarchar60NotNull` | COVERED |
-| AC-005 / SEC-3/SEC-4 hash + internal state absent from response | `CustomerRegistrationApiTest.successResponseNeverExposesCredentialOrInternalState` | COVERED |
-| AC-006 invalid password rejected pre-persistence | `CustomerRegistrationApiTest` (8 vectors) + `CustomerServiceTest.serviceRechecksThePasswordPolicyBeforeHashingOrTouchingTheRepository` (`save` never called) | COVERED |
-| AC-003 invalid email rejected | `CustomerRegistrationApiTest.malformedEmailReturns400WithEmailFieldError`, `.blankEmailReturns400WithEmailFieldError`, `.emailLongerThan254CharsReturns400WithEmailFieldError` | COVERED |
-| AC-002 / SEC-8 duplicate email (any case) → OD-003:A `409`, no 2nd account | `CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409`; `CustomerServiceTest` (both cases, `save` never called) | COVERED |
-| Mass assignment (unknown field) | `CustomerRegistrationApiTest.unknownJsonPropertyReturns400` | COVERED |
-| SEC-9 validation message never echoes value | `PasswordPolicyValidatorTest.defaultMessageNeverEchoesASubmittedValue`, `CustomerRegistrationApiTest.passwordValidationMessageDoesNotEchoTheSubmittedValue` | COVERED |
-| SEC-1 registration public / other routes deny-by-default | `RegistrationSecurityPostureTest` (reachable w/o auth; protected route → 401) | COVERED |
-| SEC-7 CSRF exemption scoped to the registration POST | `RegistrationSecurityPostureTest.registrationPostIsAcceptedWithoutACsrfToken` | COVERED |
-| SEC-6/SEC-9 H2 console not exposed | `RegistrationSecurityPostureTest.h2ConsoleIsNotExposed` | COVERED |
-| SEC-6 error body leaks no internals | `CustomerRegistrationApiTest.errorBodyNeverLeaksInternals` | COVERED |
-| Concurrent duplicate (F-3) | none | GAP (accepted — out of scope, follow-up) |
-| `RegistrationRequest.toString()` (F-1) | none | GAP (accepted — no leak path today) |
+| Password hashed, not plaintext | `CustomerServiceTests.RegisterAsync_ValidRequest_PersistsHashedPasswordNotPlaintext` | PASS |
+| Password hash never in response | `RegistrationSecurityPostureTests.PostCustomers_SuccessfulRegistration_ResponseBodyContainsNoPasswordOrHash` | PASS |
+| Invalid password rejected | `RegistrationRequestValidatorTests` (`[Theory]`, 5 cases + 2 byte-boundary cases) | PASS |
+| Invalid email rejected | `RegistrationRequestValidatorTests` (3 cases) | PASS |
+| Duplicate email enforced | `CustomerServiceTests`/`CustomerRegistrationApiTests`/`CustomerPersistenceTests` (3 tests, different layers) | PASS |
+| Validation message never echoes value | `RegistrationRequestValidatorTests.Validate_PasswordFailureMessage_NeverEchoesSubmittedValue` | PASS |
+| No database browser/admin UI publicly accessible | N/A — none exists to test (confirmed absent, §12) | N/A |
+| Endpoint access matches approved public status | `RegistrationSecurityPostureTests.PostCustomers_Unauthenticated_IsNotRejectedForLackOfAuthentication`, `AuthorizationFallbackPolicy_RequiresAuthenticatedUser` | PASS |
 
-Test quality: security tests use the real `SecurityFilterChain`
-(`@SpringBootTest` + `@AutoConfigureMockMvc`), not a stubbed `@WebMvcTest`;
-persistence tests hit H2 `INFORMATION_SCHEMA`; service tests use a real
-`BCryptPasswordEncoder`. No test mocks away the property it asserts.
+No test asserts a "method was called" without also asserting the
+resulting state/output — reviewed test bodies directly (not just names),
+consistent with `implementation_verification` v2's Test Quality Review
+(§14 there).
 
 ## 16. Abuse Case Review
 
-| Scenario | Expected protection | Evidence | Status |
-|---|---|---|---|
-| Submit `role` / `enabled` in the JSON to self-escalate | field ignored/rejected; server sets role | `fail-on-unknown-properties=true` → `400`; `unknownJsonPropertyReturns400` | PROTECTED |
-| Repeated duplicate registrations | `409`, no second account | AC-002 tests | PROTECTED (single-request); F-3 for the concurrent race |
-| Oversized email / password | `400` (`@Size(max=254)`; password > 72 bytes) | `emailLongerThan254CharsReturns400...`, `passwordOver72BytesButUnder72CharsReturns400...` | PROTECTED |
-| Malformed / non-JSON body | `400` / `415` | `malformedJsonReturns400`, `nonJsonContentTypeReturns415` | PROTECTED |
-| Weak / non-compliant password | `400`, no account, no hash computed | 8 password vectors + service re-check | PROTECTED |
-| Inspect success response for credentials | none present | `successResponseNeverExposesCredentialOrInternalState` | PROTECTED |
-| Account enumeration via `409` message | accepted risk (OD-003:A / SEC-8) | human-approved decision | ACCEPTED RISK (not a finding) |
-| High-volume automated signups (DoS / spam) | out of scope (OD-005:A) | no NFR/AC requires rate limiting | OUT OF SCOPE (follow-up recommended) |
-| Reach the H2 TCP server started by `AUTO_SERVER` | blank `sa` password on a local file DB | F-5 | INFORMATIONAL (approved config; local dev only) |
+| Scenario | Expected protection | Evidence | Status | Finding |
+|---|---|---|---|---|
+| Repeated duplicate registration (same email, rapid succession) | Second attempt rejected, no second account | Sequential: `409` (tested, passes). **Concurrent** (Q5): see below | PARTIAL | F-2 |
+| Malformed email | `400` | Tested, passes | OK | — |
+| Weak/invalid password | `400` | Tested, passes | OK | — |
+| Unexpected request fields (e.g. attempting to submit `role`/`enabled`) | Rejected (`additionalProperties: false` / unmapped-member disallow) | `RegistrationRequest` is a positional `record(Email, Password)` — no `role`/`enabled` property exists on the type for JSON binding to target even before the unmapped-member check runs; confirmed via direct type read | OK | — |
+| Non-JSON / oversized-Content-Type-mismatch body | `415` | Tested + independently re-verified live this session and last (`implementation_verification` v2 §8) | OK | — |
+| Response inspected for sensitive fields | No password/hash present | Tested (multiple layers) | OK | — |
+| Rate limiting / brute-force registration spam | Explicitly out of scope | OD-005:A (approved, unchanged from the original resolution — stack-neutral) | Accepted | — |
+
+**Q5, TOCTOU race condition — independently assessed, not just cited:**
+`CustomerService.RegisterAsync` calls `repository.ExistsByEmailAsync`
+(a `SELECT`) then, if false, `repository.AddAsync` (an `INSERT` via
+`SaveChangesAsync`) — two round trips with no explicit transaction or
+row-level locking spanning them. Two concurrent requests for the same
+email could both observe "does not exist" before either commits; the
+second `INSERT` then trips `uq_customer_email`'s unique-index constraint
+at the database level, throwing an EF Core `DbUpdateException` that
+**`GlobalExceptionHandler`'s switch does not explicitly match** (only
+`DuplicateEmailException`/`InvalidPasswordException`/
+`UnsupportedMediaTypeException` are cased) — it falls through to the
+generic `500` branch. Traced the full consequence: the `500` response
+still uses the generic "An unexpected error occurred." message (not
+`exception.Message`), so **no internal detail (SQL, exception type, stack
+trace) leaks** even under this race — SC-9 holds. The logged exception
+(server-side only) contains the email and the constraint-violation detail,
+never the plaintext password — no credential-leak risk in the race path
+either. **Net assessment: this is a robustness/correctness gap (wrong
+status code under a narrow race window), not a confidentiality,
+integrity, or authorization defect** — the unique constraint still
+correctly prevents the duplicate row from ever being persisted; data
+integrity is fully intact. This exact issue (check-then-act via
+`existsByEmail` then insert) existed identically in the retired Spring
+Boot implementation and was reviewed there as Minor/accepted given
+OD-005:A (anti-abuse/concurrency explicitly out of scope) — confirmed via
+`workflow-state.yaml`'s carried history (`SEC F-3`/`MF-3`). OD-005:A's
+resolution is unchanged and stack-neutral this session. Recorded as F-2,
+Minor, same disposition as the prior track: accepted, with a
+recommendation that a follow-up Story map `DbUpdateException` (or
+specifically a unique-constraint violation) to `409` for robustness.
 
 ## 17. Repository Hygiene
 
-- **Secret-like files:** none. No `.env`, token, key, or credential file tracked
-  or untracked in scope. `application.yaml` `password: ""` is the H2 default for
-  a local file DB, not a real secret (F-6).
-- **Generated H2 files:** `/data/` git-ignored; not present in the working tree.
-- **Working tree:** `M .gitignore`, `M docs/evidence/.gitignore` — both are
-  pre-existing harness housekeeping (adding ignore entries for
-  `harness-*` scaffolding and `harness-consistency-review.md`), **not** part of
-  US-001 and not security-relevant. No `src/**` change is uncommitted.
-- **Untracked:** `docs/evidence/harness-*.{py,md}`,
-  `docs/harness-consistency-review.md` — pre-existing, outside this Story, left
-  untouched.
-- No secret value is reproduced in this report.
+Full `grep` sweep of every new/changed production file this session for
+password-literal, secret, API-key, and embedded-connection-credential
+patterns: **zero matches** beyond the legitimate `SC-1`/hasher-related
+source code itself (which was excluded from the match set by construction
+of the search, then manually spot-checked to confirm no false negative).
+`.gitignore` covers `**/App_Data/`, `*.db`, `*.db-shm`, `*.db-wal` —
+independently re-confirmed by reading the file directly this review. No
+generated SQLite database file is present in the working tree or staged
+for commit (re-confirmed via `git status --porcelain
+--untracked-files=all`, consistent with `implementation_verification` v2
+§4). `.config/dotnet-tools.json` contains no secret (§14). No `.env` file,
+no private key, no MCP configuration copy present in this Story's change
+set.
 
 ## 18. Deviations
 
-| Deviation | Security assessment |
-|---|---|
-| `exception/InvalidPasswordException` added (D-1, plan C-12 left the type unspecified) | Benign. Domain exception, no HTTP concept, no submitted value in the message, mapped to `400`. Improves defense-in-depth (FR-6). |
-| Implemented error `message` strings differ from OpenAPI examples (D-4 / F-2) | Illustrative examples only; AC-6 shape preserved; no information leak. |
-| `open_decisions.md` v1 still `OPEN` (F-4) | Documentation lag only. Resolutions are authoritative in `history.jsonl` and applied correctly. |
-| `CustomerSchemaTest` 2-char fixture fix by the implementer (IMPL_VERIFICATION MF-1) | Not security-relevant; no assertion changed. Ownership crossing noted for RECONCILIATION. |
-
-No undisclosed security-relevant deviation found.
+None beyond what `implementation_report` v4 and
+`implementation_verification` v2 already disclose and this review
+independently confirmed accurate (§§5–16). No undisclosed security-
+sensitive change found.
 
 ## 19. Findings
 
-### F-1 — `RegistrationRequest` record `toString()` renders the plaintext password
+| ID | Severity | Category | Affected artifact/file | Evidence | Required correction | Loop-back |
+|---|---|---|---|---|---|---|
+| F-1 | Minor | AUTHENTICATION | `CustomerPortal/Program.cs` (`AddCookie()`, unconfigured) | SC-3 requires `401` on failed authentication; default cookie-auth challenge is a `302` redirect. Not observable today (no protected endpoint exists yet) | Configure `CookieAuthenticationOptions.Events.OnRedirectToLogin` (and `OnRedirectToAccessDenied`) to return `401`/`403` instead of redirecting, before or alongside the Story that adds the first protected endpoint | none (non-blocking; no exploitable surface exists in US-001) |
+| F-2 | Minor | PERSISTENCE | `CustomerPortal/Services/CustomerService.cs`, `CustomerPortal/Exceptions/GlobalExceptionHandler.cs` | Check-then-act email uniqueness under concurrent duplicate requests trips an unmapped `DbUpdateException` → `500` instead of `409`; no data-integrity or confidentiality impact (constraint still prevents the duplicate row; no internal detail leaks) | Map `DbUpdateException` (or a unique-constraint-specific subtype check) to `409` in `GlobalExceptionHandler` in a follow-up Story; accepted for US-001 per OD-005:A (anti-abuse/concurrency explicitly out of scope), matching the retired Spring Boot track's identical, already-accepted disposition | none (accepted per approved OD-005:A) |
+| F-3 | Minor | CONFIGURATION | `CustomerPortal/Program.cs` (`AddAntiforgery()`) | Registered but no enforcement mechanism (filter/middleware/`ValidateRequestAsync` call) is wired anywhere; harmless today since `Register` is correctly exempt and no other endpoint exists, but SC-5's "CSRF stays enabled for every other endpoint" is not actually true in the running system yet | When a future Story adds a session-mutating, non-exempt endpoint, explicitly wire antiforgery enforcement (filter or middleware) at that time — registration alone does nothing | none (non-blocking; no exploitable surface exists in US-001) |
+| F-4 | Minor (carried, unchanged) | TEST_COVERAGE / DOCUMENTATION | `docs/architecture/architecture.md` AD-3 | Carried from `implementation_verification` v2 F-4 / `plan-review` v2 F-1 — no new security content; listed here only for completeness of the carried-forward record | Future `architecture.md` wording clarification | none |
 
-- **Severity:** Minor. **Category:** PASSWORD_HANDLING / DATA_EXPOSURE.
-- **Affected:** `src/main/java/org/example/customerportal/model/request/RegistrationRequest.java`
-- **Observed:** `RegistrationRequest` is a `record`, so the compiler-generated
-  `toString()` includes every component, `password` among them. By contrast
-  `Customer.toString()` was hand-written specifically to exclude `passwordHash`
-  — the project treats credential-in-`toString()` as a real concern.
-- **Expected:** SEC-3 / SC-1 — the plaintext password is "never logged, never
-  placed on a response DTO." A `toString()` that emits it is a latent violation
-  of that intent.
-- **Risk:** Low **today**. Independently confirmed: production code has no
-  logger, no `System.out`/`println` (`grep` over `src/main`), no SQL/debug
-  logging config; `GlobalExceptionHandler` never touches the bound DTO;
-  `CustomerController` / `CustomerService` never call `request.toString()` or
-  log the request. No reachable leak path exists. The risk is realized only if
-  future code logs the request object or a framework is configured to.
-- **Required correction:** none for US-001. **Recommendation:** a follow-up
-  change should give `RegistrationRequest` a custom `toString()` that masks
-  `password` (consistent with `Customer`), and RECONCILIATION should record this
-  as accepted-with-recommendation.
-- **Loop-back target:** none.
+No `Critical` finding. No `Major` finding.
 
-### F-2 — Error `message` strings differ from OpenAPI illustrative examples
+## 20. Positive Controls
 
-- **Severity:** Minor. **Category:** API_SECURITY / documentation.
-- **Affected:** `exception/GlobalExceptionHandler.java`, `docs/designs/api/US-001-openapi.yaml`
-- **Observed:** implemented `415` message `"Content-Type must be
-  application/json."` vs. contract example `"Content-Type 'text/plain' is not
-  supported."`; one combined `400` message for
-  missing/malformed/unknown-field vs. two contract examples. The `409` message
-  matches exactly.
-- **Expected:** OpenAPI `examples` are explicitly illustrative, not normative;
-  AC-6 body **shape** is what the contract fixes, and it is preserved.
-- **Risk:** none — the implemented messages are *more* generic than the
-  examples, so no additional information is disclosed.
-- **Required correction:** none. Optionally `openapi-designer` aligns the
-  examples in a future revision.
-- **Loop-back target:** none.
-
-### F-3 — Concurrent duplicate registration maps to `500`, not `409`
-
-- **Severity:** Minor. **Category:** PERSISTENCE / ERROR_HANDLING (robustness).
-- **Affected:** `service/CustomerService.java`, `exception/GlobalExceptionHandler.java`
-- **Observed:** check-then-act (`existsByEmail` → `save`). Two simultaneous
-  requests for the same new email can both pass the check; the second `save`
-  throws `DataIntegrityViolationException` (from `uq_customer_email`), which is
-  unmapped and falls through to `handleUnexpected` → `500`.
-- **Expected:** no approved artifact covers concurrency. AC-002 (the
-  single-request duplicate path) is correctly `409`. The unique constraint
-  still prevents the duplicate row, so data integrity holds.
-- **Risk:** low — a `500` on a rare race; no data corruption, and no
-  information disclosure beyond what the accepted OD-003:A `409` already
-  reveals. Not a DoS vector on its own.
-- **Required correction:** none for US-001. **Recommendation:** a follow-up
-  Story maps `DataIntegrityViolationException` on `uq_customer_email` to `409`
-  (catch-and-translate, or rely on the constraint alone with a handler).
-- **Loop-back target:** none.
-
-### F-4 — `open_decisions.md` v1 still shows OD-001..OD-006 as `OPEN`
-
-- **Severity:** Minor. **Category:** REPOSITORY_HYGIENE / documentation.
-- **Affected:** `docs/decisions/US-001-open-decisions.md`
-- **Observed:** the artifact is `status: DRAFT` with all six decisions `OPEN`.
-  The authoritative resolutions (`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A
-  OD-006:A`) are recorded in `history.jsonl` at `HUMAN_SPEC_APPROVAL`
-  (2026-08-31T07:48:48Z) and are applied correctly throughout the code and the
-  downstream artifacts.
-- **Risk:** none to the implementation; a reader consulting only the file could
-  be misled.
-- **Required correction:** `us-clarifier` publishes `open_decisions.md` v2 with
-  the resolved statuses. Carried from spec-review F-1 / IMPL_VERIFICATION MF-4.
-- **Loop-back target:** none (owned by `us-clarifier`, not a SECURITY_REVIEW
-  loop-back target).
-
-### F-5 — `AUTO_SERVER=TRUE` starts an H2 TCP listener guarded by a blank `sa` password
-
-- **Severity:** Informational. **Category:** CONFIGURATION.
-- **Affected:** `src/main/resources/application.yaml`
-- **Observed:** the default-profile datasource URL is
-  `jdbc:h2:file:./data/customer-portal;AUTO_SERVER=TRUE` with `username: sa`,
-  `password: ""`. `AUTO_SERVER` starts an H2 automatic mixed-mode server so
-  other local processes can attach to the same file DB; the account guarding it
-  has no password.
-- **Expected / provenance:** this exact URL is specified in the **approved** DB
-  design §8 (line 172), the **approved** plan M-2, and the impact analysis — it
-  is approved configuration, not an implementer addition. The test profile uses
-  isolated in-memory H2 with no server.
-- **Risk:** for a local training project, low and accepted by the approved
-  design. The listener is local-oriented (mixed mode for concurrent local JVMs)
-  and the DB holds only training data. Not exposed to the public API. It is
-  nonetheless a blank-credential network listener.
-- **Required correction:** none. **Recommendation:** a future hardening Story
-  could drop `AUTO_SERVER` (single-process access is sufficient) or bind it
-  explicitly to loopback, and set an H2 password from externalized config.
-- **Loop-back target:** none.
-
-### F-6 — Empty datasource password committed in `application.yaml`
-
-- **Severity:** Informational. **Category:** SECRET_MANAGEMENT.
-- **Affected:** `src/main/resources/application.yaml`
-- **Observed:** `spring.datasource.password: ""` and `username: sa` are checked
-  in.
-- **Expected:** SC-7 — "config secrets come from environment variables /
-  externalized config." An empty string is the H2 default and not a secret, so
-  no policy is breached, but the pattern (inline credential fields) is worth
-  noting before a real database is introduced.
-- **Risk:** none for local file H2 with an empty password.
-- **Required correction:** none for US-001. When US-00x introduces a real
-  datasource, the credentials must be externalized.
-- **Loop-back target:** none.
-
-## 20. Positive Controls (independently observed)
-
-1. **BCrypt, no no-op encoder** — `new BCryptPasswordEncoder()` in the
-   `security` package; a real `$2[aby]$` verifying hash is asserted by a test
-   using the real encoder.
-2. **Plaintext password confined to the request DTO** — traced through
-   `CustomerService`: used only for `isCompliant` and `encode`, never stored on
-   the entity, DTO, or exception.
-3. **No logging anywhere in production code** — `grep` over `src/main` returns
-   nothing; no SQL/debug logging config. Credentials cannot reach a log via
-   US-001 paths.
-4. **Response DTO isolation** — `CustomerResponse` carries exactly
-   `id, email, role, createdAt`; positively asserted absence of
-   `password`/`passwordHash`/`enabled`/`updatedAt`.
-5. **Deny-by-default authorization** — `anyRequest().authenticated()` with a
-   single exact `POST /api/v1/customers` `permitAll` matcher; protected route
-   returns `401` (verified, not a redirect).
-6. **CSRF exemption minimally scoped** — the *same* single `RequestMatcher`
-   drives both `permitAll` and `csrf.ignoringRequestMatchers`; CSRF stays on
-   globally (OD-002:B, the recorded SC-5 architecture decision).
-7. **H2 console disabled in every profile** — `enabled: false` in both
-   properties files; `GET /h2-console` asserted non-200; no permit rule.
-8. **`ddl-auto=validate` in every profile** — schema is hand-written
-   `schema.sql`; entity mapping validated against it at boot (SC-8).
-9. **Mass-assignment closed** — `fail-on-unknown-properties=true`; only
-   `email`/`password` bindable; `role`/`enabled` set server-side only.
-10. **Error hygiene** — one `@RestControllerAdvice`, one static client-safe
-    message per status, `500` fallback leaks nothing; asserted by
-    `errorBodyNeverLeaksInternals`.
-11. **Password policy = SC-1 exactly**, enforced twice (request constraint +
-    service re-check), byte-measured for the BCrypt bound; static non-echoing
-    message.
+- BCrypt via `BCrypt.Net-Next`, default (non-trivial) work factor —
+  confirmed real, not stubbed.
+- Plaintext password confirmed unreachable outside the inbound DTO;
+  password hash confirmed absent from every response type and every log
+  call, by direct code reading, not inference from naming.
+- SC-4 deny-by-default fallback policy confirmed correctly overridden by
+  `[AllowAnonymous]` for the one approved public endpoint, with no
+  verb-tunneling or routing bypass found.
+- Content-type-enforcement middleware confirmed to introduce no DoS or
+  injection vector — reads headers only, JSON-escapes its one
+  header-derived message field.
+- No database browser/admin UI, no static-file serving, no path-traversal
+  vector, no secret, no credential anywhere in this Story's change set —
+  each independently re-confirmed via direct `grep`, not merely assumed.
+- Error responses uniformly leak no internal detail across every status
+  code this Story produces, including under the one identified race
+  condition (F-2).
+- Dual-layer password-policy enforcement confirmed architecturally sound:
+  the redundant Service-layer check is provably unreachable given the
+  primary control's confirmed-active runtime wiring, not merely assumed
+  dead code.
 
 ## 21. Open Decisions
 
-All six US-001 Open Decisions were resolved by a human at `HUMAN_SPEC_APPROVAL`
-(`history.jsonl` 2026-08-31T07:48:48Z): `OD-001:A OD-002:B OD-003:A OD-004:A
-OD-005:A OD-006:A`. The security-sensitive ones — OD-002 (CSRF: exempt the
-registration POST only), OD-003 (duplicate-email: explicit `409`, enumeration
-exposure accepted per SEC-8), OD-005 (anti-abuse: out of scope, follow-up) —
-are all resolved and correctly implemented.
-
-**No blocking security Open Decisions were identified.** The `open_decisions.md`
-file being stale (F-4) is a documentation issue, not an unresolved decision.
+**No blocking security Open Decisions were identified.** OD-002 (CSRF
+classification, B), OD-003 (duplicate-email response, A), OD-005
+(anti-abuse/concurrency, A) remain resolved and correctly, consistently
+implemented — independently re-confirmed this review, not merely trusted
+from prior stages.
 
 ## 22. Review Limitations
 
-- **Build/test not re-run in this stage.** Build and test evidence
-  (`./gradlew clean build`, 62/62) is reused from `implementation_verification`
-  v1, which independently reproduced it. This review did not re-execute it.
-- **`runtime_checks: PARTIAL`** — no application boot, no live HTTP probing, no
-  live H2/TCP reachability test was performed by this stage. Security posture
-  conclusions rest on the existing security tests (which run the real filter
-  chain) plus code/config inspection.
-- **`semantic_analysis: TEXT_FALLBACK`** — IDEA MCP semantic tools not invoked.
-  Authorization / call-path conclusions rest on import graphs and method
-  signatures, not PSI call analysis. Layering is unambiguous from imports here.
-- **No dependency vulnerability scanning.** No CVE database was consulted; no
-  claim is made about known vulnerabilities in the resolved dependency tree. An
-  approved scanner (e.g. OWASP Dependency-Check) should run if organizational
-  policy requires it.
-- **Concurrency (F-3)** is reasoned from code, not reproduced with a concurrent
-  test.
-- **Tool-usage telemetry payload content** was not audited (out of Story
-  scope); policy (AGENTS.md, SC-9) states it is metadata-only.
-- Human diff review and `HUMAN_PR_APPROVAL` remain outstanding by design.
+- No IDE MCP server configured; all findings are text-search/direct-read
+  based, qualified as such throughout — no semantic-tool-based dependency
+  or call-graph analysis was possible or claimed.
+- No dependency vulnerability scanner was run (§14) — dependency review is
+  limited to "what was added" (nothing new) and "what is present"
+  (versions read directly from `.csproj`), not CVE-database matching.
+- F-1 (cookie-auth challenge behavior) could not be observed via a live
+  HTTP round-trip because no protected endpoint exists yet in the running
+  application to trigger it — the finding rests on reading the framework's
+  documented default behavior and the absence of any overriding
+  configuration in `Program.cs`, not on an executed reproduction.
+- This review reused `implementation_verification` v2's build/test/AC-
+  coverage/persistence evidence rather than re-running `dotnet build`/
+  `dotnet test`/a full live smoke pass a third time in the same session,
+  per this Skill's own guidance to consume current, already-independently-
+  verified evidence rather than re-deriving it; this review's own
+  additive checks were targeted `grep`/direct-read inspections (§§10, 12,
+  17) rather than a full re-execution.
 
 ## 23. Verdict Rationale
 
-`implementation_verification` verdict is PASS (precondition met).
-`specification_review`, `design_review`, and `plan_review` are all APPROVED
-(front matter read directly); both human gates are recorded; no consumed input
-is `SUPERSEDED`. Every security requirement SEC-1..SEC-11 is independently
-verifiable in code, configuration, and executable tests that exercise the real
-security filter chain. All security-sensitive Open Decisions were resolved by a
-human and are correctly implemented. Mass assignment, plaintext exposure,
-console exposure, schema-destruction, and authorization-bypass vectors are all
-closed. The four Minor findings are latent/robustness/documentation items with
-no reachable exploit path under the current code; the two Informational items
-concern approved local-dev configuration. There is no Critical or Major finding,
-so no `CHANGES_REQUIRED` loop-back is warranted; no mandatory security
-requirement is undefined and no human security decision is pending, so no
-`BLOCKED` condition applies.
-
-**Verdict: PASS** → advance to `RECONCILIATION`.
+Zero Critical, zero Major findings. Password handling, credential
+non-exposure, the SC-4 authentication/authorization posture, and the new
+content-type-enforcement middleware are all independently confirmed sound
+under adversarial review, not merely accepted from prior stages' framing.
+Four Minor findings are recorded: three are genuine, already-committed
+configuration gaps against approved conventions (SC-3's `401` requirement;
+SC-5's "CSRF enabled for every other endpoint" claim) that have **zero
+currently-exploitable surface** in US-001 specifically (no protected or
+non-exempt endpoint exists yet for either gap to matter against), and one
+(F-2) is a robustness gap under a narrow concurrency race with no
+confidentiality/integrity impact, explicitly accepted per an approved,
+unchanged Open Decision (OD-005:A) and consistent with how the retired
+Spring Boot track treated the identical issue. None require a code change
+before this Story can proceed — all four are forward-looking
+recommendations for later Stories, correctly not escalated to block a
+Story whose own actual behavior is secure. Per Step 21, this qualifies as
+`PASS`: no Critical/Major finding, `implementation_verification` is
+current and `PASS`, required security tests pass, no blocking security
+Open Decision.
 
 ```yaml
 result:
@@ -567,13 +491,11 @@ result:
   loop_back_stage: null
   blocking_issues: []
   non_blocking_findings:
-    - "F-1 (Minor, PASSWORD_HANDLING): RegistrationRequest is a record — its generated toString() renders the plaintext password. No reachable leak path today (no logger/System.out/println anywhere in src/main; GlobalExceptionHandler never touches the bound DTO; no debug/SQL logging config). SEC-3 holds. RECONCILIATION to record accepted-with-recommendation; follow-up: custom masking toString() consistent with Customer.toString()."
-    - "F-2 (Minor, API_SECURITY/doc): implemented 400/415 error message strings differ verbatim from the OpenAPI illustrative examples (409 matches exactly; AC-6 shape preserved; tests assert status+shape). Implemented messages are more generic — no extra disclosure. Optional: openapi-designer aligns examples in a future revision. Carried from IMPL_VERIFICATION MF-2 / D-4."
-    - "F-3 (Minor, PERSISTENCE/robustness): CustomerService.register is check-then-act (existsByEmail then save); a concurrent duplicate trips uq_customer_email as an unmapped DataIntegrityViolationException -> 500 instead of 409. Unique constraint still prevents the duplicate row; no data-integrity or enumeration impact beyond accepted OD-003:A. No AC/design/test covers concurrency; anti-abuse out of scope (OD-005:A). Follow-up Story to map the exception to 409. Carried from IMPL_VERIFICATION MF-3."
-    - "F-4 (Minor, doc): docs/decisions/US-001-open-decisions.md v1 still shows OD-001..OD-006 OPEN; authoritative resolutions (OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A) are in history.jsonl at HUMAN_SPEC_APPROVAL 2026-08-31T07:48:48Z and applied correctly. Owned by us-clarifier (publish v2). No implementation impact."
-    - "F-5 (Informational, CONFIGURATION): default-profile datasource URL uses AUTO_SERVER=TRUE with username sa / blank password — an H2 mixed-mode TCP listener with no credential. This is APPROVED configuration (DB design section 8 line 172, plan M-2, impact analysis), local-dev only, training data only, test profile uses isolated in-memory H2. Recommendation: a future hardening Story drops AUTO_SERVER or binds it to loopback and externalizes an H2 password."
-    - "F-6 (Informational, SECRET_MANAGEMENT): spring.datasource.password: \"\" and username sa are committed in application.yaml. Empty string is the H2 default, not a secret, so SC-7 is not breached — but when a real datasource is introduced its credentials must be externalized."
-    - "PASS basis: SEC-1..SEC-11 all independently verified in code/config/tests; security tests run the real SecurityFilterChain. Security-sensitive Open Decisions (OD-002 CSRF, OD-003 enumeration, OD-005 anti-abuse) resolved by human at HUMAN_SPEC_APPROVAL and correctly implemented. Account enumeration via the 409 message is human-accepted (SEC-8 / OD-003:A) — a Positive Control with noted accepted risk, not a finding."
-    - "Positive controls verified: BCrypt (no no-op encoder); plaintext password confined to the request DTO; zero logging in src/main; CustomerResponse credential/internal-state isolation (positively asserted); deny-by-default authz with a single exact permitAll matcher; CSRF exemption on the same single matcher only; H2 console disabled every profile; ddl-auto=validate every profile; mass-assignment closed (fail-on-unknown-properties)."
-    - "Limitations: build/tests reused from implementation_verification v1 (not re-run); runtime_checks PARTIAL (no app boot / live probing this stage); semantic_analysis TEXT_FALLBACK (no IDEA MCP); NO dependency vulnerability scanning performed — no CVE claim about the dependency tree."
+    - "F-1 (Minor, AUTHENTICATION): cookie auth's default 302-redirect challenge behavior contradicts SC-3's 401 requirement; not observable today (no protected endpoint exists), but a real gap for the next Story that adds one. Configure OnRedirectToLogin/OnRedirectToAccessDenied to return 401/403 at that time."
+    - "F-2 (Minor, PERSISTENCE, accepted per OD-005:A): concurrent duplicate registration can trip an unmapped DbUpdateException -> 500 instead of 409; no data-integrity or confidentiality impact (constraint still prevents the duplicate row, no internal detail leaks). Same disposition as the retired Spring Boot track's identical issue. Follow-up Story to map it to 409."
+    - "F-3 (Minor, CONFIGURATION): AddAntiforgery() registered with no enforcement wired anywhere; harmless today (Register is correctly exempt, no other endpoint exists), but SC-5's 'CSRF enabled for every other endpoint' isn't actually true yet. Wire enforcement explicitly when a future Story adds a non-exempt endpoint."
+    - "F-4 (Minor, carried, no new security content): architecture.md AD-3 wording ambiguity, carried from implementation_verification v2 / plan-review v2."
+    - "Informational: content-type-enforcement middleware independently confirmed to introduce no DoS vector (header-only checks, no body access) and no injection/disclosure risk (JSON-escaped, reflects only the client's own header value)."
+    - "Informational: .config/dotnet-tools.json (dotnet-ef local tool) is dev-only, zero runtime footprint, no secret, pinned version -- confirmed out of SEC-11 concern scope."
+    - "Informational: BCrypt.Net-Next default work factor (10) confirmed real and non-trivial, not a stub -- matches SC-1/SC-2 exactly."
 ```
