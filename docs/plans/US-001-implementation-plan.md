@@ -2,9 +2,9 @@
 artifact_type: implementation_plan
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T10:24:32Z
-updated_at: 2026-09-01T11:48:48Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: implementation-planner
 inputs:
   - path: docs/stories/US-001-register-customer.md

@@ -2,9 +2,9 @@
 artifact_type: implementation_report
 story: US-001
 version: 4
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-09-01T12:02:44Z
-updated_at: 2026-09-01T12:56:14Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: aspnet-implementor
 inputs:
   - path: docs/specifications/US-001-spec.md

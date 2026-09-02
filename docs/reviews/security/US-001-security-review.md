@@ -2,9 +2,9 @@
 artifact_type: security_review
 story: US-001
 version: 1
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-09-01T13:10:37Z
-updated_at: 2026-09-01T13:10:37Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: security-reviewer
 inputs:
   - path: docs/evidence/US-001-implementation-report.md

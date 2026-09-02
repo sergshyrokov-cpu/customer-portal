@@ -2,9 +2,9 @@
 artifact_type: specification_review
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T01:19:10Z
-updated_at: 2026-09-01T11:15:39Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: spec-verifier
 inputs:
   - path: docs/stories/US-001-register-customer.md

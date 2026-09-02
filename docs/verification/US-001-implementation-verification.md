@@ -2,9 +2,9 @@
 artifact_type: implementation_verification
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-09-01T12:50:07Z
-updated_at: 2026-09-01T13:06:57Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: implementation-verifier
 inputs:
   - path: docs/evidence/US-001-implementation-report.md

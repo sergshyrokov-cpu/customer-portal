@@ -2,9 +2,9 @@
 artifact_type: entity_model
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T09:16:56Z
-updated_at: 2026-09-01T11:33:28Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: db-designer
 inputs:
   - path: docs/specifications/US-001-spec.md

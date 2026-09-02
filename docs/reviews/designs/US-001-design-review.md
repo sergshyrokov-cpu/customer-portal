@@ -2,9 +2,9 @@
 artifact_type: design_review
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T09:44:50Z
-updated_at: 2026-09-01T11:37:39Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: design-reviewer
 inputs:
   - path: docs/specifications/US-001-spec.md

@@ -2,9 +2,9 @@
 artifact_type: pr_summary
 story: US-001
 version: 1
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-09-01T13:22:25Z
-updated_at: 2026-09-01T13:22:25Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: pr-preparer
 inputs:
   - path: docs/stories/US-001-register-customer.md

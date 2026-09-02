@@ -74,6 +74,16 @@ schema_generation:
 - Failed authentication returns `401` with the standard error body — it does
   not reveal whether the email exists (no account enumeration) unless a
   Story's approved design explicitly allows it.
+- **Known gap (from US-001 delivery, unresolved):** ASP.NET Core cookie
+  authentication's default unauthorized-access behavior is a `302` redirect
+  to a login path, not a `401` response — that default has not yet been
+  reconciled with this rule. It was not observable during US-001 (no
+  authenticated endpoint existed), but **must be explicitly addressed by the
+  first Story that adds an `[Authorize]` endpoint** (expected: US-002
+  Customer Login), e.g. by overriding
+  `CookieAuthenticationEvents.OnRedirectToLogin` to return `401` for API
+  requests instead of redirecting. See
+  `docs/evidence/US-001-delivery-summary.md` for the originating finding.
 
 ## SC-4 Authorization
 

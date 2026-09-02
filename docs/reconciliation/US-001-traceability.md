@@ -2,9 +2,9 @@
 artifact_type: traceability
 story: US-001
 version: 3
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-09-01T13:17:46Z
-updated_at: 2026-09-01T13:17:46Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: reconciliation-reviewer
 inputs:
   - path: docs/stories/US-001-register-customer.md

@@ -2,9 +2,9 @@
 artifact_type: plan_review
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T11:05:00Z
-updated_at: 2026-09-01T11:54:03Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: plan-reviewer
 inputs:
   - path: docs/plans/US-001-implementation-plan.md

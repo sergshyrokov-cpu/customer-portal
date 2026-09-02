@@ -2,9 +2,9 @@
 artifact_type: api_design
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T08:18:54Z
-updated_at: 2026-09-01T11:29:53Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: openapi-designer
 inputs:
   - path: docs/specifications/US-001-spec.md

@@ -2,9 +2,9 @@
 artifact_type: ac_test_matrix
 story: US-001
 version: 2
-status: DRAFT
+status: ARCHIVED
 created_at: 2026-08-31T11:25:00Z
-updated_at: 2026-09-01T12:09:46Z
+updated_at: 2026-09-02T13:11:31Z
 produced_by: test-writer
 inputs:
   - path: docs/specifications/US-001-spec.md
