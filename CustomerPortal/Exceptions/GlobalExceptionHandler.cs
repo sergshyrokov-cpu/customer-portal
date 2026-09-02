@@ -18,6 +18,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         {
             DuplicateEmailException => (StatusCodes.Status409Conflict, "Conflict"),
             InvalidPasswordException => (StatusCodes.Status400BadRequest, "Bad Request"),
+            AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             UnsupportedMediaTypeException => (StatusCodes.Status415UnsupportedMediaType, "Unsupported Media Type"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error"),
         };

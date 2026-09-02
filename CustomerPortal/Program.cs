@@ -53,10 +53,48 @@ builder.Services.AddDbContext<AppDbContext>(options => options
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<ICustomerAuthService, CustomerAuthService>();
+builder.Services.AddSingleton(TimeProvider.System);
+
+var cookieName = builder.Configuration["Authentication:Cookie:Name"] ?? "CustomerPortal.Auth";
+var idleTimeout = TimeSpan.FromMinutes(builder.Configuration.GetValue("Authentication:Cookie:IdleTimeoutMinutes", 30));
+var absoluteTimeout = TimeSpan.FromHours(builder.Configuration.GetValue("Authentication:Cookie:AbsoluteTimeoutHours", 8));
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+    .AddCookie(options =>
+    {
+        // No server-rendered login page exists in this JSON API (OD-004:A) --
+        // return 401/403 unconditionally instead of the framework's default
+        // redirect-to-login-path challenge.
+        options.Cookie.Name = cookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = idleTimeout;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+        options.Events.OnValidatePrincipal = context =>
+        {
+            var timeProvider = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
+            if (context.Properties.IssuedUtc is { } issuedUtc &&
+                timeProvider.GetUtcNow() - issuedUtc > absoluteTimeout)
+            {
+                context.RejectPrincipal();
+            }
+
+            return Task.CompletedTask;
+        };
+    });
 // SC-4 deny-by-default: every endpoint requires authentication unless
 // explicitly marked [AllowAnonymous] (implementation_plan v2 Architectural
 // Changes item 1 -- this Story adds the project's first endpoint).
