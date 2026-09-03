@@ -4,6 +4,7 @@ using CustomerPortal.Models.Requests;
 using CustomerPortal.Repositories;
 using CustomerPortal.Security;
 using CustomerPortal.Services;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace CustomerPortal.Tests.Services;
@@ -35,11 +36,23 @@ public class CustomerServiceTests
         public bool Verify(string password, string hash) => hash == Hash(password);
     }
 
+    /// <summary>
+    /// CustomerService's constructor gained a third dependency, ICustomerAuthService,
+    /// for LoginAsync (implementation-plan v2 / plan-review v1 F-1). RegisterAsync
+    /// never touches it -- this stub only exists so these existing tests keep
+    /// compiling against the new constructor shape; it throws if ever invoked.
+    /// </summary>
+    private sealed class NeverCalledCustomerAuthService : ICustomerAuthService
+    {
+        public Task<Customer> AuthenticateAndSignInAsync(HttpContext httpContext, string email, string password) =>
+            throw new InvalidOperationException("Not expected to be called by RegisterAsync.");
+    }
+
     [Fact]
     public async Task RegisterAsync_ValidRequest_CreatesEnabledCustomerWithCustomerRole()
     {
         var repository = new FakeCustomerRepository();
-        var service = new CustomerService(repository, new FakePasswordHasher());
+        var service = new CustomerService(repository, new FakePasswordHasher(), new NeverCalledCustomerAuthService());
 
         var response = await service.RegisterAsync(new RegistrationRequest("alice@example.com", "Str0ng&Pass!word"));
 
@@ -52,7 +65,7 @@ public class CustomerServiceTests
     {
         var repository = new FakeCustomerRepository();
         var hasher = new FakePasswordHasher();
-        var service = new CustomerService(repository, hasher);
+        var service = new CustomerService(repository, hasher, new NeverCalledCustomerAuthService());
 
         await service.RegisterAsync(new RegistrationRequest("bob@example.com", "Str0ng&Pass!word"));
 
@@ -66,7 +79,7 @@ public class CustomerServiceTests
     public async Task RegisterAsync_EmailDiffersOnlyByCase_NormalizedToLowercaseBeforeStorage()
     {
         var repository = new FakeCustomerRepository();
-        var service = new CustomerService(repository, new FakePasswordHasher());
+        var service = new CustomerService(repository, new FakePasswordHasher(), new NeverCalledCustomerAuthService());
 
         await service.RegisterAsync(new RegistrationRequest("Carol@Example.com", "Str0ng&Pass!word"));
 
@@ -84,7 +97,7 @@ public class CustomerServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });
-        var service = new CustomerService(repository, new FakePasswordHasher());
+        var service = new CustomerService(repository, new FakePasswordHasher(), new NeverCalledCustomerAuthService());
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() =>
             service.RegisterAsync(new RegistrationRequest("Dave@Example.com", "Str0ng&Pass!word")));
@@ -94,7 +107,7 @@ public class CustomerServiceTests
     public async Task RegisterAsync_ValidRequest_SetsEnabledTrue()
     {
         var repository = new FakeCustomerRepository();
-        var service = new CustomerService(repository, new FakePasswordHasher());
+        var service = new CustomerService(repository, new FakePasswordHasher(), new NeverCalledCustomerAuthService());
 
         await service.RegisterAsync(new RegistrationRequest("erin@example.com", "Str0ng&Pass!word"));
 

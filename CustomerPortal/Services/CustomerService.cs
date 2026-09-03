@@ -5,10 +5,14 @@ using CustomerPortal.Models.Entities;
 using CustomerPortal.Models.Requests;
 using CustomerPortal.Repositories;
 using CustomerPortal.Security;
+using Microsoft.AspNetCore.Http;
 
 namespace CustomerPortal.Services;
 
-public class CustomerService(ICustomerRepository repository, IPasswordHasher passwordHasher) : ICustomerService
+public class CustomerService(
+    ICustomerRepository repository,
+    IPasswordHasher passwordHasher,
+    ICustomerAuthService customerAuthService) : ICustomerService
 {
     public async Task<CustomerResponse> RegisterAsync(RegistrationRequest request)
     {
@@ -35,6 +39,18 @@ public class CustomerService(ICustomerRepository repository, IPasswordHasher pas
         await repository.AddAsync(customer);
 
         return new CustomerResponse(customer.Id, customer.Email, customer.Role, customer.CreatedAt);
+    }
+
+    /// <summary>
+    /// Controller-facing entry point for login (plan-review v1 F-1): the
+    /// only responsibility here is delegating to ICustomerAuthService and
+    /// mapping the returned entity to a DTO (AD-4) -- the authentication
+    /// decision itself lives in CustomerAuthService (SC-3).
+    /// </summary>
+    public async Task<LoginResponse> LoginAsync(HttpContext httpContext, LoginRequest request)
+    {
+        var customer = await customerAuthService.AuthenticateAndSignInAsync(httpContext, request.Email, request.Password);
+        return new LoginResponse(customer.Id, customer.Email, customer.Role);
     }
 
     /// <summary>

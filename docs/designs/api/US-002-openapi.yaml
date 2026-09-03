@@ -1,0 +1,284 @@
+openapi: 3.0.3
+
+info:
+  title: Customer Portal API — Customer Login (US-002)
+  description: >
+    HTTP contract for US-002 Customer Login. Adds a single public endpoint
+    that lets a previously-registered Customer authenticate and establish a
+    cookie-based session. Authoritative artifact paths:
+    docs/workflow/artifact-paths.yaml.
+  version: "1"
+
+x-story: US-002
+x-source-specification: docs/specifications/US-002-spec.md
+x-source-specification-version: 2
+x-produced-by: openapi-designer
+x-open-decisions:
+  OD-001: "A — POST /api/v1/sessions (session-resource framing, no verb in path)"
+  OD-002: "A — 200 OK with { id, email, role } on success (approved exception to AC-4's 201-for-creation default — see api-design.md section 3)"
+  OD-003: "A — a disabled account produces the identical 401 as an unknown email / wrong password"
+  OD-004: "A — CookieAuthenticationEvents overridden to return 401/403 unconditionally, no redirect (no server-rendered login page in this project)"
+  OD-005: "A — anti-abuse / rate limiting out of scope for US-002"
+  OD-006: "A — explicit shorter cookie lifetime; this design fixes 30 min sliding idle timeout, 8h absolute cap (within OD-006's approved 30–60min/8–12h range)"
+  OD-007: "A — logout out of scope for US-002"
+x-fixed-by-convention: >
+  The 401 uniformity for an unknown email vs. a wrong password (this
+  contract's single failure response below) is fixed by
+  security-conventions.md SC-3's existing anti-enumeration default — it is
+  NOT an Open Decision outcome. OD-003 only decided whether a disabled
+  account (a third case) joins that same response; per OD-003:A it does.
+
+servers:
+  - url: /api/v1
+    description: Version 1 (URI-path versioning, api-conventions.md AC-1)
+
+tags:
+  - name: Sessions
+    description: Authentication session resources
+
+paths:
+  /sessions:
+    post:
+      tags: [Sessions]
+      operationId: login
+      summary: Authenticate a Customer and establish a session
+      description: >
+        Public, unauthenticated endpoint (security-conventions.md SC-4 lists
+        login as a public endpoint alongside registration). Looks up the
+        Customer by email (case-insensitive), verifies the password against
+        the stored BCrypt hash, and checks the account is enabled. On success
+        establishes an ASP.NET Core cookie-authenticated session
+        (SignInAsync). An unknown email, a wrong password, and (OD-003:A) a
+        disabled account all produce the identical 401 response — the caller
+        cannot distinguish which case occurred.
+      security: []
+      x-public: true
+      x-authorization: none
+      requestBody:
+        required: true
+        description: >
+          Must be application/json (api-conventions.md AC-2). A request with
+          a body and a missing or non-JSON Content-Type is rejected with 415.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Login attempt
+                value:
+                  email: "customer@example.com"
+                  password: "Str0ng&Pass!word"
+      responses:
+        '200':
+          description: >
+            Authentication succeeded. The response establishes the session via
+            a Set-Cookie header; the body never contains credential material.
+            AC-001, AC-005.
+          headers:
+            Set-Cookie:
+              description: >
+                Authentication cookie (name: CustomerPortal.Auth), HttpOnly,
+                Secure, SameSite=Strict (security-conventions.md SC-5).
+                Sliding expiration 30 minutes idle, 8-hour absolute cap
+                (OD-006:A).
+              schema:
+                type: string
+                example: "CustomerPortal.Auth=CfDJ8...; HttpOnly; Secure; SameSite=Strict"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  value:
+                    id: 42
+                    email: "customer@example.com"
+                    role: "CUSTOMER"
+        '400':
+          description: >
+            Request-shape failure: `email` or `password` missing or blank, or
+            malformed JSON. No authentication is attempted. AC-007.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingPassword:
+                  summary: password missing
+                  value:
+                    timestamp: "2026-09-02T13:00:00Z"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Validation failed for one or more fields."
+                    path: "/api/v1/sessions"
+                    fieldErrors:
+                      - field: "password"
+                        message: "must not be blank"
+                malformedJson:
+                  summary: Malformed JSON body
+                  value:
+                    timestamp: "2026-09-02T13:00:00Z"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Malformed JSON request body."
+                    path: "/api/v1/sessions"
+        '401':
+          description: >
+            Authentication failed — unknown email, wrong password, or (per
+            OD-003:A) a disabled account. All three cases produce this
+            identical response; no field distinguishes them. AC-002, AC-003,
+            AC-004.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                authenticationFailed:
+                  value:
+                    timestamp: "2026-09-02T13:00:00Z"
+                    status: 401
+                    error: "Unauthorized"
+                    message: "Invalid email or password."
+                    path: "/api/v1/sessions"
+        '415':
+          description: >
+            The request Content-Type is missing or is not application/json.
+            api-conventions.md AC-2, Specification AC-006.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unsupportedMediaType:
+                  value:
+                    timestamp: "2026-09-02T13:00:00Z"
+                    status: 415
+                    error: "Unsupported Media Type"
+                    message: "Content-Type 'text/plain' is not supported."
+                    path: "/api/v1/sessions"
+        '500':
+          description: >
+            Unmapped server error. The body never leaks stack traces, SQL,
+            class names, file paths, or database URLs (SC-9).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal:
+                  value:
+                    timestamp: "2026-09-02T13:00:00Z"
+                    status: 500
+                    error: "Internal Server Error"
+                    message: "An unexpected error occurred."
+                    path: "/api/v1/sessions"
+
+components:
+  schemas:
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          minLength: 1
+          description: >
+            Customer email, compared case-insensitively against the stored
+            (already-validated, already-normalized) value from registration.
+            No format re-validation is performed at login (Spec §6.1) — a
+            malformed email simply will not match any account and falls
+            through to the 401 response, not a 400.
+          example: "customer@example.com"
+        password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          description: >
+            Plaintext password, accepted only on this inbound DTO (SC-1).
+            Never persisted, logged, returned, or placed on a response DTO.
+            No policy re-validation is performed at login (Spec §6.2) — a
+            policy-violating value simply will not match any real hash and
+            falls through to the 401 response, not a 400.
+          example: "Str0ng&Pass!word"
+
+    LoginResponse:
+      type: object
+      description: >
+        Safe representation of the authenticated Customer (OD-002:A). Contains
+        no password, no password hash, and no internal state such as
+        `enabled`.
+      required:
+        - id
+        - email
+        - role
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Surrogate identifier of the authenticated Customer.
+          example: 42
+        email:
+          type: string
+          description: The stored (normalized, lowercase) email.
+          example: "customer@example.com"
+        role:
+          type: string
+          enum: [CUSTOMER, ADMIN]
+          description: The authenticated Customer's assigned role (SC-2).
+          example: "CUSTOMER"
+
+    ErrorResponse:
+      type: object
+      description: >
+        Standard error body from api-conventions.md AC-6, produced by the
+        single GlobalExceptionHandler in the Exceptions namespace (AC-9,
+        architecture.md AD-6). `message` is safe to display and never leaks
+        internals (SC-9).
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-02T13:00:00Z"
+        status:
+          type: integer
+          example: 401
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Invalid email or password."
+        path:
+          type: string
+          example: "/api/v1/sessions"
+        fieldErrors:
+          type: array
+          description: Present only for field-level FluentValidation failures.
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: "password"
+        message:
+          type: string
+          description: Safe validation message; never echoes the submitted value (SC-9).
+          example: "must not be blank"
